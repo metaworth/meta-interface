@@ -1,0 +1,45 @@
+.editor {
+  counter-reset: line;
+  border-radius: var(--chakra-radii-md);
+  border: 1px solid;
+  border-color: inherit;
+  background: inherit;
+}
+
+.editor #codeArea {
+  outline: none;
+  padding-left: 50px !important;
+}
+
+.editor pre {
+  padding-left: 50px !important;
+  padding-right: 50px !important;
+}
+
+.editor .editorLineNumber {
+  position: absolute;
+  left: 0px;
+  color: #cccccc;
+  text-align: right;
+  width: 40px;
+  font-weight: 100;
+}
+
+.chakra-editor[aria-invalid=true], .chakra-editor[data-invalid] {
+  border-color: #E53E3E;
+  box-shadow: 0 0 0 1px #E53E3E;
+}
+
+.chakra-form-error {
+  display: -webkit-box;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-align-items: center;
+  -webkit-box-align: center;
+  -ms-flex-align: center;
+  align-items: center;
+  color: var(--chakra-colors-red-500);
+  margin-top: var(--chakra-space-2);
+  font-size: var(--chakra-fontSizes-sm);
+}
