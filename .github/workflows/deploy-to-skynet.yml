@@ -1,0 +1,28 @@
+name: Deploy to Skynet
+
+on:
+  push:
+    branches: [skynet]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      REACT_APP_WEB3_STORAGE_API_KEY: ${{ secrets.REACT_APP_WEB3_STORAGE_API_KEY }}
+      REACT_APP_MAINNET_RPC_ENDPOINT: ${{ secrets.REACT_APP_MAINNET_RPC_ENDPOINT }}
+      REACT_APP_RINKEBY_RPC_ENDPOINT: ${{ secrets.REACT_APP_RINKEBY_RPC_ENDPOINT }}
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v2
+        with:
+          node-version: 14.17.5
+
+      - run: yarn
+      - run: yarn build
+
+      - name: "Deploy to Skynet"
+        uses: SkynetLabs/deploy-to-skynet-action@v2
+        with:
+          upload-dir: build
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          registry-seed: ${{ secrets.SKYNET_REGISTRY_SEED || '' }}

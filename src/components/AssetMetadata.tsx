@@ -19,7 +19,7 @@ const AssetMetadata: FC<{ assetMetadata?: FileMetadata }> = ({ assetMetadata }) 
           <Tr>
             <Td paddingInlineStart={0}>Asset Name</Td>
             <Td textAlign="end" paddingInlineEnd={0}>
-              <Text maxW={230}>
+              <Text maxW={230} float={'right'}>
                 {assetMetadata?.name}
               </Text>
             </Td>
