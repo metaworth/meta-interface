@@ -19,6 +19,15 @@ const config: Config = {
   },
 }
 
+const config: Config = {
+  readOnlyChainId: ChainId.Mainnet,
+  readOnlyUrls: {
+    [ChainId.Mainnet]: process.env.REACT_APP_MAINNET_RPC_ENDPOINT || '',
+    [ChainId.Rinkeby]: process.env.REACT_APP_RINKEBY_RPC_ENDPOINT || '',
+    [ChainId.Polygon]: process.env.REACT_APP_POLYGON_RPC_ENDPOINT || '',
+  },
+}
+
 ReactDOM.render(
   <React.StrictMode>
     <DAppProvider config={config}>
