@@ -6,6 +6,8 @@ This interface was bootstrapped with [Create React App](https://github.com/faceb
 
 In the project directory, you can run:
 
+### `yarn` to install dependencies
+
 ### `yarn start`
 
 Runs the app in the development mode.\
