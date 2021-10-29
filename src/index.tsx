@@ -8,6 +8,16 @@ import './index.css'
 import App from './App'
 import reportWebVitals from './reportWebVitals'
 import { store } from './store'
+import theme from './helpers/theme'
+
+const config: Config = {
+  readOnlyChainId: ChainId.Mainnet,
+  readOnlyUrls: {
+    [ChainId.Mainnet]: process.env.REACT_APP_MAINNET_RPC_ENDPOINT || '',
+    [ChainId.Rinkeby]: process.env.REACT_APP_RINKEBY_RPC_ENDPOINT || '',
+    [ChainId.Polygon]: process.env.REACT_APP_POLYGON_RPC_ENDPOINT || '',
+  },
+}
 
 const config: Config = {
   readOnlyChainId: ChainId.Mainnet,
@@ -23,7 +33,7 @@ ReactDOM.render(
     <DAppProvider config={config}>
       <BrowserRouter>
         <Provider store={store}>
-          <ColorModeScript />
+          <ColorModeScript initialColorMode={theme.config.initialColorMode} />
           <App />
         </Provider>
       </BrowserRouter>

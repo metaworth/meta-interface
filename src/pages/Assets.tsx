@@ -12,7 +12,6 @@ import {
   AccordionPanel,
   Grid,
   GridItem,
-  Divider,
   Stack,
   FormControl,
   FormLabel,
@@ -20,27 +19,19 @@ import {
   Textarea,
   Button,
   useBoolean,
-  Center,
-  CloseButton,
-  AlertDialog,
-  AlertDialogBody,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogContent,
   useDisclosure,
-  WrapItem,
   Link,
-  Spinner,
-  AlertDialogOverlay,
+  useColorModeValue,
   Flex,
+  Drawer,
+  DrawerBody,
+  DrawerFooter,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerContent,
+  DrawerCloseButton,
 } from '@chakra-ui/react'
-import {
-  DeleteIcon,
-  EditIcon,
-  ExternalLinkIcon,
-  CopyIcon,
-  CheckIcon,
-} from '@chakra-ui/icons'
+import { ExternalLinkIcon } from '@chakra-ui/icons'
 import { FaPlus, FaMinus, FaGripVertical, FaGripHorizontal } from 'react-icons/fa'
 import { HiUpload } from 'react-icons/hi'
 import { BiSort } from 'react-icons/bi'
@@ -61,12 +52,9 @@ interface NftAsset {
   sellOrder?: any
 }
 
-interface Upload {
-  name: string
-  cid: string
-}
-
 const Assets = () => {
+  const color = useColorModeValue("black", "black")
+
   const [assets, setAssets] = useState<FileMetadata[]>([])
   const [assetSelected, setAssetSelected] = useState<FileMetadata>()
   const [title, setTitle] = useState()
@@ -79,7 +67,7 @@ const Assets = () => {
   const [isMinted, setIsMinted] = useState(false)
 
   const [showAssetInfo, setShowAssetInfo] = useBoolean()
-
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
   const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
 
@@ -163,11 +151,11 @@ const Assets = () => {
   })
 
   const onAssetSelected = (asset: FileMetadata) => {
-    console.log('asset:', asset)
     if (!assetSelected || assetSelected?.name === asset.name) {
       setShowAssetInfo.toggle()
     }
     setAssetSelected(asset)
+    onOpen()
   }
 
   /**
@@ -222,7 +210,7 @@ const Assets = () => {
   ))
 
   return (
-    <Container maxW={{ lg: '7xl' }}>
+    <Container color={color} maxW={{ lg: '7xl' }}>
       <Box as={Flex} justifyContent={'space-between'} alignItems={'center'}>
         <Box></Box>
         <Button
@@ -276,126 +264,117 @@ const Assets = () => {
 
         {
           assets.length === 0 ? (
-            <Box>Assets not found</Box>
+            <Box>Assets not found. You can drag & drop files here, or click the Upload button on the top right to select files</Box>
           ) : (
-              <Grid templateColumns="repeat(14, 1fr)">
+              <Grid templateColumns="repeat(5, 1fr)">
                 <GridItem colSpan={assetSelected ? 11 : 14}>
                   <SimpleGrid minChildWidth="15rem" spacing={2}>
                     {previews}
                   </SimpleGrid>
                 </GridItem>
-                
               </Grid>
           )
         }
       </Box>
 
-      <AlertDialog
-        motionPreset="slideInBottom"
-        leastDestructiveRef={cancelRef}
-        onClose={() => {}}
-        isOpen={assetSelected ? true : false}
+      <Drawer
+        placement="right"
+        onClose={onClose}
+        isOpen={isOpen}
         closeOnEsc={true}
         closeOnOverlayClick={true}
-        isCentered
         size={'xl'}
       >
-        <AlertDialogOverlay />
+        <DrawerOverlay />
 
-        <AlertDialogContent>
-          <AlertDialogHeader>Asset Data</AlertDialogHeader>
-          <AlertDialogBody>
+        <DrawerContent>
+          <DrawerCloseButton />
+          <DrawerHeader>Asset Data</DrawerHeader>
+          <DrawerBody>
           <>
-                <GridItem colSpan={3}>
-                  <Stack mt={5}>
-                    <Stack px={2} direction="row" justifyContent="space-between">
-                      <Box></Box>
-                      <Box>
-                        <CloseButton onClick={() => setAssetSelected(undefined)} />
-                      </Box>
-                    </Stack>
+            <GridItem colSpan={3}>
+              <Stack mt={5}>
+                <Accordion allowMultiple defaultIndex={[0, 1]} colorScheme="orange">
+                  <AccordionItem>
+                    {({ isExpanded }) => (
+                      <>
+                        <h2>
+                          <AccordionButton bgColor="gray.100" color={color}>
+                            <Box flex="1" textAlign="left">
+                              Asset Metadata
+                            </Box>
+                            {isExpanded ? (
+                              <FaMinus />
+                            ) : (
+                              <FaPlus />
+                            )}
+                          </AccordionButton>
+                        </h2>
+                        <AccordionPanel pb={4}>
+                          <AssetMetadata assetMetadata={assetSelected} />
+                        </AccordionPanel>
+                      </>
+                    )}
+                  </AccordionItem>
 
-                    <Accordion allowMultiple defaultIndex={[0, 1]} colorScheme="orange">
-                      <AccordionItem>
-                        {({ isExpanded }) => (
-                          <>
-                            <h2>
-                              <AccordionButton bgColor="gray.100">
-                                <Box flex="1" textAlign="left">
-                                  Asset Metadata
-                                </Box>
-                                {isExpanded ? (
-                                  <FaMinus />
-                                ) : (
-                                  <FaPlus />
-                                )}
-                              </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4}>
-                              <AssetMetadata assetMetadata={assetSelected} />
-                            </AccordionPanel>
-                          </>
-                        )}
-                      </AccordionItem>
+                  <AccordionItem>
+                    {({ isExpanded }) => (
+                      <>
+                        <h2>
+                          <AccordionButton bgColor="gray.100" color={color}>
+                            <Box flex="1" textAlign="left">
+                              NFT Metadata
+                            </Box>
+                            {isExpanded ? (
+                              <FaMinus />
+                            ) : (
+                              <FaPlus />
+                            )}
+                          </AccordionButton>
+                        </h2>
+                        <AccordionPanel pb={4}>
+                          <FormControl id="title" isRequired>
+                            <FormLabel>Title</FormLabel>
+                            <Input placeholder="e.g. Awesome avatar" isReadOnly={!!tokenId} onChange={(e: any) => setTitle(e.target.value)} />
+                          </FormControl>
+                          <FormControl id="description" mt={2}>
+                            <FormLabel>Description</FormLabel>
+                            <Textarea placeholder="e.g. More details info about the awesome avatar" isReadOnly={!!tokenId} resize={'vertical'} onChange={(e: any) => setDesc(e.target.value)} />
+                          </FormControl>
+                        </AccordionPanel>
+                      </>
+                    )}
+                  </AccordionItem>
+                </Accordion>
+              </Stack>
+              
+            </GridItem>
+          </>
+          </DrawerBody>
+          <DrawerFooter d="flex" alignItems="center" justifyContent={'center'}>
+            <Stack mt={2} spacing={30} direction="row">
+              {
+                !tokenId ? (
+                  <Button colorScheme="teal" size="md" disabled={!title || !assetSelected} onClick={() => lazyMint()}>
+                    Lazy Mint
+                  </Button>
+                ) : ''
+              }
 
-                      <AccordionItem>
-                        {({ isExpanded }) => (
-                          <>
-                            <h2>
-                              <AccordionButton bgColor="gray.100">
-                                <Box flex="1" textAlign="left">
-                                  NFT Metadata
-                                </Box>
-                                {isExpanded ? (
-                                  <FaMinus />
-                                ) : (
-                                  <FaPlus />
-                                )}
-                              </AccordionButton>
-                            </h2>
-                            <AccordionPanel pb={4}>
-                              <FormControl id="title" isRequired>
-                                <FormLabel>Title</FormLabel>
-                                <Input placeholder="e.g. Awesome avatar" isReadOnly={!!tokenId} onChange={(e: any) => setTitle(e.target.value)} />
-                              </FormControl>
-                              <FormControl id="description" mt={2}>
-                                <FormLabel>Description</FormLabel>
-                                <Textarea placeholder="e.g. More details info about the awesome avatar" isReadOnly={!!tokenId} resize={'vertical'} onChange={(e: any) => setDesc(e.target.value)} />
-                              </FormControl>
-                              <Stack mt={2} spacing={30} direction="row" justifyContent="center">
-                                {
-                                  !tokenId ? (
-                                    <Button colorScheme="teal" size="md" disabled={!title || !assetSelected} onClick={() => lazyMint()}>
-                                      Lasy Mint
-                                    </Button>
-                                  ) : ''
-                                }
-
-                                {
-                                  tokenId ? (
-                                    <Button colorScheme="teal" size="md" onClick={() => console.log('create sell order')}>
-                                      Create Sell Order
-                                    </Button>
-                                  ) : ''
-                                }
-                              </Stack>
-                            </AccordionPanel>
-                          </>
-                        )}
-                      </AccordionItem>
-                    </Accordion>
-                  </Stack>
-                  
-                </GridItem>
-              </>
-          </AlertDialogBody>
-          <AlertDialogFooter d="flex" alignItems="center" justifyContent={'center'}>
-            <Button colorScheme="teal" onClick={onMintClose} isDisabled={!isMinted}>
-              Close
-            </Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              {
+                tokenId ? (
+                  <Button colorScheme="teal" size="md" onClick={() => console.log('create sell order')}>
+                    Create Sell Order
+                  </Button>
+                ) : ''
+              }
+              <Button colorScheme="teal" onClick={onMintClose} isDisabled={!isMinted}>
+                Close
+              </Button>
+            </Stack>
+          </DrawerFooter>
+        </DrawerContent>
+      </Drawer>
 
     </Container>
   )

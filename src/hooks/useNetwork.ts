@@ -1,8 +1,7 @@
 import { useCallback } from 'react'
 import { useEthers, ChainId } from 'web3-sdk'
 
-
-const AVALANCHE_MAINNET_PARAMS = {
+const EMERALD_MAINNET_PARAMS = {
   chainId: '0xA86A',
   chainName: 'Avalanche Mainnet C-Chain',
   nativeCurrency: {
@@ -10,20 +9,8 @@ const AVALANCHE_MAINNET_PARAMS = {
     symbol: 'AVAX',
     decimals: 18
   },
-  rpcUrls: ['https://api.avax.network/ext/bc/C/rpc'],
-  blockExplorerUrls: ['https://cchain.explorer.avax.network/']
-}
-
-const AVALANCHE_TESTNET_PARAMS = {
-  chainId: '0xA869',
-  chainName: 'Avalanche Fuji Testnet',
-  nativeCurrency: {
-    name: 'Avalanche',
-    symbol: 'AVAX',
-    decimals: 18
-  },
-  rpcUrls: ['https://api.avax-test.network/ext/bc/C/rpc'],
-  blockExplorerUrls: ['https://cchain.explorer.avax-test.network/']
+  rpcUrls: ['https://emerald.rpc'],
+  blockExplorerUrls: ['https://explorer.emerald.network/']
 }
 
 const POLYGON_MAINNET_PARAMS = {
@@ -38,33 +25,48 @@ const POLYGON_MAINNET_PARAMS = {
   blockExplorerUrls: ['https://polygonscan.com']
 }
 
-export function useNetwork() {
-  const { library, chainId: currChainId } = useEthers()
+type NetworkId = ChainId
 
-  const addNetwork = useCallback(async (
-    chainId: string | number,
-    chainName: string,
-    currencyName: string,
-    currencySymbol: string,
-    currencyDecimals = 18,
-    rpcUrls: string | string[],
-    blockExplorerUrls: string | string[]
-  ) => {
-    chainId = verifyChainId(chainId)
+interface NativeCurrency {
+  name: string
+  symbol: string
+  decimals: number
+}
+
+interface Network {
+  name: string
+  chainId: ChainId
+  shortName?: string
+  chain?: string
+  network?: string
+  networkId?: NetworkId
+  nativeCurrency: NativeCurrency
+  rpc: string[]
+  faucets?: string[]
+  explorers?: string[]
+  infoURL?: string
+}
+
+export function useNetwork() {
+  const { library, chainId: connectedChainId } = useEthers()
+
+  const addNetwork = useCallback(async ({ chainId, name, nativeCurrency, rpc, explorers }: Network) => {
+    const hexedChainId = verifyChainId(chainId)
     if (!library || !library.provider) return
+
     await library.provider.request!({
       method: 'wallet_addEthereumChain',
       params: [
         {
-          chainId,
-          chainName,
+          chainId: hexedChainId,
+          chainName: name,
           nativeCurrency: {
-            name: currencyName,
-            symbol: currencySymbol,
-            decimals: currencyDecimals,
+            name: nativeCurrency.name,
+            symbol: nativeCurrency.symbol,
+            decimals: nativeCurrency.decimals || 18
           },
-          rpcUrls,
-          blockExplorerUrls
+          rpcUrls: rpc,
+          blockExplorerUrls: explorers
         }
       ]
     })
@@ -73,7 +75,7 @@ export function useNetwork() {
   const switchNetwork = async (chainId: ChainId) => {
     const cId = verifyChainId(chainId)
     // Check if the user wallet is already on `chainId`
-    const currentNetwork = fromDecimalToHex(currChainId || -1)
+    const currentNetwork = fromDecimalToHex(connectedChainId || -1)
     if (currentNetwork === cId) return
     await library && library?.provider && library.provider.request!({
       method: 'wallet_switchEthereumChain',
@@ -81,33 +83,10 @@ export function useNetwork() {
     })
   }
 
-  const addAvalancheTestnet = async () => {
-    if (library && library.provider) {
-      await library.provider.request!({
-        method: 'wallet_addEthereumChain',
-        params: [AVALANCHE_TESTNET_PARAMS]
-      })
-    }
-  }
-
-  const addAvalancheMainnet = async (chainId: string) => {
-    chainId = verifyChainId(chainId)
-    // Check if the user wallet is already on `chainId`
-    const currentNetwork = fromDecimalToHex(currChainId || -1)
-    if (currentNetwork === chainId) return
-
-    if (library && library.provider) {
-      await library.provider.request!({
-        method: 'wallet_addEthereumChain',
-        params: [AVALANCHE_MAINNET_PARAMS]
-      })
-    }
-  }
-
   const addPolygonMainnet = async (chainId: string | number) => {
     chainId = verifyChainId(chainId)
     // Check if the user wallet is already on `chainId`
-    const currentNetwork = fromDecimalToHex(currChainId || -1)
+    const currentNetwork = fromDecimalToHex(connectedChainId || -1)
     if (currentNetwork === chainId) return
 
     if (library && library.provider) {
@@ -118,11 +97,11 @@ export function useNetwork() {
     }
   }
 
-  return { addNetwork, switchNetwork, addAvalancheMainnet, addAvalancheTestnet, addPolygonMainnet }
+  return { addNetwork, switchNetwork, addPolygonMainnet }
 }
 
 function fromDecimalToHex(number: number) {
-  if (typeof number !== 'number') throw 'The input provided should be a number'
+  if (typeof number !== 'number') throw Error('The input provided should be a number')
   return `0x${number.toString(16)}`
 }
 

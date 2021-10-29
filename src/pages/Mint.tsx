@@ -1,12 +1,10 @@
-import { Box, Container, Flex } from '@chakra-ui/react'
+import { Box, Container, useColorModeValue } from '@chakra-ui/react'
 
 const Mint = () => {
+  const color = useColorModeValue("black", "black")
   return (
-    <Container margin={'auto'} as={Flex}>
-      <Box
-        maxW={'3xl'}
-        w={{ base: 'xl', sm: 'sm', md: '3xl' }}
-        minH={950}>
+    <Container color={color} maxW={{ lg: '7xl' }}>
+      <Box minH={'calc(100vh - 60px)'}>
         Comming soon
       </Box>
     </Container>

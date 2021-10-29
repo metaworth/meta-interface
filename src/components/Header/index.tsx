@@ -25,12 +25,6 @@ import Logo from '../../assets/images/logo.svg'
 import OasisEth from '../../assets/images/oasiseth.png'
 import EthLogo from '../../assets/images/eth-logo.svg'
 import Polygon from '../../assets/images/polygon-logo.svg'
-import Avalanche from '../../assets/images/avax-logo.svg'
-import BinanceSmartChain from '../../assets/images/bnb-logo.svg'
-import Harmony from '../../assets/images/harmony-logo.svg'
-import Near from '../../assets/images/near-logo.svg'
-import Solana from '../../assets/images/solana-logo.svg'
-import Theta from '../../assets/images/theta-logo.svg'
 import { MobileNav } from './MobileNav'
 import { DesktopNav } from './DesktopNav'
 import { useNetwork } from '../../hooks/useNetwork'
@@ -40,7 +34,7 @@ export const Header = () => {
   const { colorMode, toggleColorMode } = useColorMode()
 
   const { activateBrowserWallet, account, deactivate } = useEthers()
-  const { addAvalancheMainnet, addPolygonMainnet } = useNetwork()
+  const { addPolygonMainnet } = useNetwork()
 
   const color = useColorModeValue('', "gray.800")
 
@@ -140,11 +134,13 @@ export const Header = () => {
               <MenuButton
                 as={Button}
                 rightIcon={<ChevronDownIcon />}
+                color={color}
                 bgColor={'#FAFAFA'}
                 minW={150}
                 px={3}
                 onMouseEnter={btnMouseEnterEvent}
                 onMouseLeave={btnMouseLeaveEvent}
+                fontWeight={'normal'}
               >
                 <Box d={'flex'} justifyContent={'space-between'} alignItems={'center'} color={color}>
                   <Image src={OasisEth} width={4} /> Oasis ETH
@@ -184,66 +180,6 @@ export const Header = () => {
                   />
                   <span>Polygon Mainnet</span>
                 </MenuItem>
-                <MenuItem minH="40px" onClick={() => addAvalancheMainnet('43114')}>
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Avalanche}
-                    alt="Avalanche Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>Avalanche Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={BinanceSmartChain}
-                    alt="BSC Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>BSC Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Harmony}
-                    alt="Harmony Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>Harmony Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Near}
-                    alt="Near Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>Near Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Solana}
-                    alt="Solana Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>Solana Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Theta}
-                    alt="Theta Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>Theta Mainnet</span>
-                </MenuItem>
               </MenuList>
             </Menu>
 
@@ -261,7 +197,8 @@ export const Header = () => {
                   color={color}
                   onClick={deactivate}
                 >
-                  <BiWallet size="20" />&nbsp{shortenIfAddress(account)}
+                  <BiWallet size="20" />
+                  <Box ml={1}>{shortenIfAddress(account)}</Box>
                 </Box>
               ) : (
                 <Button onClick={() => activateBrowserWallet()}>Connect Wallet</Button>
