@@ -16,6 +16,7 @@ const config: Config = {
     [ChainId.Mainnet]: process.env.REACT_APP_MAINNET_RPC_ENDPOINT || '',
     [ChainId.Rinkeby]: process.env.REACT_APP_RINKEBY_RPC_ENDPOINT || '',
     [ChainId.Polygon]: process.env.REACT_APP_POLYGON_RPC_ENDPOINT || '',
+    [ChainId.Mumbai]: process.env.REACT_APP_MUMBAI_RPC_ENDPOINT || '',
   },
 }
 

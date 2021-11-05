@@ -27,14 +27,26 @@ import EthLogo from '../../assets/images/eth-logo.svg'
 import Polygon from '../../assets/images/polygon-logo.svg'
 import { MobileNav } from './MobileNav'
 import { DesktopNav } from './DesktopNav'
-import { useNetwork } from '../../hooks/useNetwork'
+import { useNetwork, Network } from '../../hooks/useNetwork'
+
+const MUMBAI_TESTNET_PARAMS: Network = {
+  chainId: '80001',
+  name: 'Polygon Testnet',
+  nativeCurrency: {
+    name: 'Polygon',
+    symbol: 'MATIC',
+    decimals: 18
+  },
+  rpc: ['https://rpc-mumbai.matic.today'],
+  explorers: ['https://mumbai.polygonscan.com/']
+}
 
 export const Header = () => {
   const { isOpen: isMobileNavOpen, onToggle } = useDisclosure()
   const { colorMode, toggleColorMode } = useColorMode()
 
   const { activateBrowserWallet, account, deactivate } = useEthers()
-  const { addPolygonMainnet } = useNetwork()
+  const { addNetwork, switchNetwork } = useNetwork()
 
   const color = useColorModeValue('', "gray.800")
 
@@ -143,42 +155,42 @@ export const Header = () => {
                 fontWeight={'normal'}
               >
                 <Box d={'flex'} justifyContent={'space-between'} alignItems={'center'} color={color}>
-                  <Image src={OasisEth} width={4} /> Oasis ETH
+                  <Image src={Polygon} width={4} mr={'1'} /> Mumbai Testnet
                 </Box>
               </MenuButton>
               <MenuList
                 onMouseEnter={menuListMouseEnterEvent}
                 onMouseLeave={menuListMouseLeaveEvent}
               >
-                <MenuItem minH="48px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={OasisEth}
-                    alt="OasisETH"
-                    mr="0.5rem"
-                  />
-                  <span>Oasis ETH</span>
-                </MenuItem>
-                <MenuItem minH="40px">
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={EthLogo}
-                    alt="ETH Mainnet"
-                    mr="0.5rem"
-                  />
-                  <span>ETH Mainnet</span>
-                </MenuItem>
-                <MenuItem minH="40px" onClick={() => addPolygonMainnet(137)}>
+                <MenuItem minH="40px" onClick={() => addNetwork(MUMBAI_TESTNET_PARAMS)}>
                   <Image
                     width={4}
                     borderRadius="full"
                     src={Polygon}
-                    alt="Polygon Mainnet"
+                    alt="Mumbai Testnet"
                     mr="0.5rem"
                   />
-                  <span>Polygon Mainnet</span>
+                  <span>Mumbai Testnet</span>
+                </MenuItem>
+                <MenuItem minH="40px" onClick={() => switchNetwork('4')}>
+                  <Image
+                    width={4}
+                    borderRadius="full"
+                    src={EthLogo}
+                    alt="Rinkeby Testnet"
+                    mr="0.5rem"
+                  />
+                  <span>Rinkeby Testnet</span>
+                </MenuItem>
+                <MenuItem minH="40px" onClick={() => console.log('Emerald Paratime')}>
+                  <Image
+                    width={4}
+                    borderRadius="full"
+                    src={OasisEth}
+                    alt="Emerald Paratime"
+                    mr="0.5rem"
+                  />
+                  <span>Emerald Paratime</span>
                 </MenuItem>
               </MenuList>
             </Menu>
