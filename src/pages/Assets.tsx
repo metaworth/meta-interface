@@ -6,42 +6,21 @@ import {
   Container,
   Image,
   SimpleGrid,
-  Accordion,
-  AccordionItem,
-  AccordionButton,
-  AccordionPanel,
   Grid,
   GridItem,
-  Stack,
-  FormControl,
-  FormLabel,
-  Input,
-  Textarea,
-  Button,
   useBoolean,
   useDisclosure,
   Link,
   useColorModeValue,
   Flex,
-  Drawer,
-  DrawerBody,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerOverlay,
-  DrawerContent,
-  DrawerCloseButton,
 } from '@chakra-ui/react'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
-import { FaPlus, FaMinus, FaGripVertical, FaGripHorizontal } from 'react-icons/fa'
-import { HiUpload } from 'react-icons/hi'
-import { BiSort } from 'react-icons/bi'
 import { NFTStorage } from 'nft.storage'
 // @ts-ignore
 import { Web3Storage } from 'web3.storage/dist/bundle.esm.min.js'
 import { setLoading } from '../store'
 import FileMetadata from '../interfaces/FileMetadata'
-import AssetMetadata from '../components/AssetMetadata'
-
+import { AssetDrawer, AssetsHeader } from '../components/Assets'
 
 interface NftAsset {
   fileMetadata: FileMetadata
@@ -53,23 +32,19 @@ interface NftAsset {
 }
 
 const Assets = () => {
-  const color = useColorModeValue("black", "black")
+  const color = useColorModeValue('black', 'black')
 
   const [assets, setAssets] = useState<FileMetadata[]>([])
-  const [assetSelected, setAssetSelected] = useState<FileMetadata>()
-  const [title, setTitle] = useState()
-  const [desc, setDesc] = useState()
+  const [selectedAsset, setSelectedAsset] = useState<FileMetadata>()
+
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
   const [files, setFiles] = useState<FileMetadata[]>([])
   const [nftStorage, setNftStorage] = useState<NFTStorage>()
   const [web3Storage, setWeb3Storage] = useState<Web3Storage>()
-  const [tokenId, setTokenId] = useState('')
-  const [isMinted, setIsMinted] = useState(false)
 
   const [showAssetInfo, setShowAssetInfo] = useBoolean()
-  const { isOpen, onOpen, onClose } = useDisclosure()
+  const { isOpen: isAssetDrawerOpen, onOpen: onOpenAssetDrawer, onClose: onCloseAssetDrawer } = useDisclosure()
   const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
-  const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
 
   const dispatch = useDispatch()
 
@@ -151,23 +126,12 @@ const Assets = () => {
   })
 
   const onAssetSelected = (asset: FileMetadata) => {
-    if (!assetSelected || assetSelected?.name === asset.name) {
+    if (!selectedAsset || selectedAsset?.name === asset.name) {
       setShowAssetInfo.toggle()
     }
-    setAssetSelected(asset)
-    onOpen()
+    setSelectedAsset(asset)
+    onOpenAssetDrawer()
   }
-
-  /**
-	 * Mint Nft
-	 */
-	const lazyMint = async () => {
-    onMintOpen()
-
-    console.log('lazy mint')
-
-    onMintClose()
-	}
 
   const previews = nftAssets.map(({ fileMetadata: file, cid, title, desc }) => (
     <Box cursor="pointer" key={file.name} borderWidth="1px" maxW={'sm'} borderRadius="lg" overflow="hidden" onClick={() => onAssetSelected(file)}>
@@ -211,49 +175,7 @@ const Assets = () => {
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
-      <Box as={Flex} justifyContent={'space-between'} alignItems={'center'}>
-        <Box></Box>
-        <Button
-          borderRadius={5}
-          bg={'#4AD3A6'}
-          _hover={{ bg: "#3BD3A5" }}
-          _active={{
-            bg: "#dddfe2",
-            transform: "scale(0.98)",
-            borderColor: "#bec3c9",
-          }}
-          leftIcon={<HiUpload />}
-          size={'sm'}
-          onClick={open}
-          color='white'
-        >Upload</Button>
-      </Box>
-
-      <Box as={Flex} justifyContent={'space-between'} alignItems={'center'} mt={3}>
-        <Box>
-          <Button
-            borderRadius={5}
-            border="2px"
-            borderColor="black"
-            bgColor={'white'}
-            size={'sm'}
-          >Select to Mint</Button>
-          <Button
-            ml={2}
-            borderRadius={5}
-            border="2px"
-            borderColor="black"
-            bgColor={'white'}
-            size={'sm'}
-          >Select to Transfer</Button>
-        </Box>
-        
-        <Box as={Flex} alignItems={'center'}>
-          <Button size={'sm'} bgColor={'white'}><FaGripHorizontal /></Button>
-          <Button size={'sm'} ml={2} bgColor={'white'}><FaGripVertical /></Button>
-          <Button size={'sm'} ml={2} bgColor={'white'}><BiSort />&nbsp;Sort By</Button>
-        </Box>
-      </Box>
+      <AssetsHeader disableButtons={assets.length === 0} onUploadOpen={open} />
 
       <Box
         mt={3}
@@ -267,7 +189,7 @@ const Assets = () => {
             <Box>Assets not found. You can drag & drop files here, or click the Upload button on the top right to select files</Box>
           ) : (
               <Grid templateColumns="repeat(5, 1fr)">
-                <GridItem colSpan={assetSelected ? 11 : 14}>
+                <GridItem colSpan={selectedAsset ? 11 : 14}>
                   <SimpleGrid minChildWidth="15rem" spacing={2}>
                     {previews}
                   </SimpleGrid>
@@ -277,105 +199,7 @@ const Assets = () => {
         }
       </Box>
 
-      <Drawer
-        placement="right"
-        onClose={onClose}
-        isOpen={isOpen}
-        closeOnEsc={true}
-        closeOnOverlayClick={true}
-        size={'xl'}
-      >
-        <DrawerOverlay />
-
-        <DrawerContent>
-          <DrawerCloseButton />
-          <DrawerHeader>Asset Data</DrawerHeader>
-          <DrawerBody>
-          <>
-            <GridItem colSpan={3}>
-              <Stack mt={5}>
-                <Accordion allowMultiple defaultIndex={[0, 1]} colorScheme="orange">
-                  <AccordionItem>
-                    {({ isExpanded }) => (
-                      <>
-                        <h2>
-                          <AccordionButton bgColor="gray.100" color={color}>
-                            <Box flex="1" textAlign="left">
-                              Asset Metadata
-                            </Box>
-                            {isExpanded ? (
-                              <FaMinus />
-                            ) : (
-                              <FaPlus />
-                            )}
-                          </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={4}>
-                          <AssetMetadata assetMetadata={assetSelected} />
-                        </AccordionPanel>
-                      </>
-                    )}
-                  </AccordionItem>
-
-                  <AccordionItem>
-                    {({ isExpanded }) => (
-                      <>
-                        <h2>
-                          <AccordionButton bgColor="gray.100" color={color}>
-                            <Box flex="1" textAlign="left">
-                              NFT Metadata
-                            </Box>
-                            {isExpanded ? (
-                              <FaMinus />
-                            ) : (
-                              <FaPlus />
-                            )}
-                          </AccordionButton>
-                        </h2>
-                        <AccordionPanel pb={4}>
-                          <FormControl id="title" isRequired>
-                            <FormLabel>Title</FormLabel>
-                            <Input placeholder="e.g. Awesome avatar" isReadOnly={!!tokenId} onChange={(e: any) => setTitle(e.target.value)} />
-                          </FormControl>
-                          <FormControl id="description" mt={2}>
-                            <FormLabel>Description</FormLabel>
-                            <Textarea placeholder="e.g. More details info about the awesome avatar" isReadOnly={!!tokenId} resize={'vertical'} onChange={(e: any) => setDesc(e.target.value)} />
-                          </FormControl>
-                        </AccordionPanel>
-                      </>
-                    )}
-                  </AccordionItem>
-                </Accordion>
-              </Stack>
-              
-            </GridItem>
-          </>
-          </DrawerBody>
-          <DrawerFooter d="flex" alignItems="center" justifyContent={'center'}>
-            <Stack mt={2} spacing={30} direction="row">
-              {
-                !tokenId ? (
-                  <Button colorScheme="teal" size="md" disabled={!title || !assetSelected} onClick={() => lazyMint()}>
-                    Lazy Mint
-                  </Button>
-                ) : ''
-              }
-
-              {
-                tokenId ? (
-                  <Button colorScheme="teal" size="md" onClick={() => console.log('create sell order')}>
-                    Create Sell Order
-                  </Button>
-                ) : ''
-              }
-              <Button colorScheme="teal" onClick={onMintClose} isDisabled={!isMinted}>
-                Close
-              </Button>
-            </Stack>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
+      <AssetDrawer onClose={onCloseAssetDrawer} isOpen={isAssetDrawerOpen} selectedAsset={selectedAsset}  />
     </Container>
   )
 }

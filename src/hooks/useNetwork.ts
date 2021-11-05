@@ -33,9 +33,9 @@ interface NativeCurrency {
   decimals: number
 }
 
-interface Network {
+export interface Network {
   name: string
-  chainId: ChainId
+  chainId: ChainId | string
   shortName?: string
   chain?: string
   network?: string
@@ -50,8 +50,8 @@ interface Network {
 export function useNetwork() {
   const { library, chainId: connectedChainId } = useEthers()
 
-  const addNetwork = useCallback(async ({ chainId, name, nativeCurrency, rpc, explorers }: Network) => {
-    const hexedChainId = verifyChainId(chainId)
+  const addNetwork = useCallback(async (network: Network) => {
+    const hexedChainId = verifyChainId(network.chainId)
     if (!library || !library.provider) return
 
     await library.provider.request!({
@@ -59,20 +59,16 @@ export function useNetwork() {
       params: [
         {
           chainId: hexedChainId,
-          chainName: name,
-          nativeCurrency: {
-            name: nativeCurrency.name,
-            symbol: nativeCurrency.symbol,
-            decimals: nativeCurrency.decimals || 18
-          },
-          rpcUrls: rpc,
-          blockExplorerUrls: explorers
+          chainName: network.name,
+          nativeCurrency: network.nativeCurrency,
+          rpcUrls: network.rpc,
+          blockExplorerUrls: network.explorers
         }
       ]
     })
   }, [library])
 
-  const switchNetwork = async (chainId: ChainId) => {
+  const switchNetwork = async (chainId: ChainId | string) => {
     const cId = verifyChainId(chainId)
     // Check if the user wallet is already on `chainId`
     const currentNetwork = fromDecimalToHex(connectedChainId || -1)
