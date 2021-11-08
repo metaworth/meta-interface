@@ -37,13 +37,13 @@ export const DesktopNav = (props: BoxProps) => {
           p={2}
           style={`/${splitLocation[1]}` === navItem.href ? {
             textDecoration: 'none',
-            color: useColorModeValue('gray.800', 'white'),
+            color: useColorModeValue('#4AD3A6', '#4AD3A6'),
             borderRadius: 10,
             backgroundColor: '#4AD3A6'
           } : undefined}
           _hover={{
             textDecoration: 'none',
-            color: useColorModeValue('gray.800', 'white'),
+            color: useColorModeValue('#4AD3A6', '#4AD3A6'), // useColorModeValue('gray.800', 'white'),
             rounded: 10,
             backgroundColor: '#4AD3A6'
           }}>

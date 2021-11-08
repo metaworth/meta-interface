@@ -51,7 +51,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({ onUploadOpen, disableButtons }) =
           >Select to Transfer</Button>
         </Box>
         
-        <Box as={Flex} alignItems={'center'}>
+        {/* <Box as={Flex} alignItems={'center'}>
           <Button
             size={'sm'}
             bgColor={'white'}
@@ -75,7 +75,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({ onUploadOpen, disableButtons }) =
           >
             <BiSort />&nbsp;Sort By
           </Button>
-        </Box>
+        </Box> */}
       </Box>
     </>
   )

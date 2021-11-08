@@ -1,35 +1,27 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useDispatch } from 'react-redux'
-import { 
+import {
   Box,
   Container,
-  Image,
   SimpleGrid,
   Grid,
   GridItem,
   useBoolean,
   useDisclosure,
-  Link,
   useColorModeValue,
-  Flex,
 } from '@chakra-ui/react'
-import { ExternalLinkIcon } from '@chakra-ui/icons'
+import { ThreadID, Update } from '@textile/hub'
 import { NFTStorage } from 'nft.storage'
 // @ts-ignore
 import { Web3Storage } from 'web3.storage/dist/bundle.esm.min.js'
 import { setLoading } from '../store'
 import FileMetadata from '../interfaces/FileMetadata'
-import { AssetDrawer, AssetsHeader } from '../components/Assets'
+import NftAsset from '../interfaces/NftAsset'
+import { AssetDrawer, AssetsHeader, AssetPreview } from '../components/Assets'
+import { TextileContext } from '../context'
+import useTextile from '../hooks/use-textile'
 
-interface NftAsset {
-  fileMetadata: FileMetadata
-  cid?: string
-  title?: string
-  desc?: string
-  tokenId?: string
-  sellOrder?: any
-}
 
 const Assets = () => {
   const color = useColorModeValue('black', 'black')
@@ -38,15 +30,59 @@ const Assets = () => {
   const [selectedAsset, setSelectedAsset] = useState<FileMetadata>()
 
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
-  const [files, setFiles] = useState<FileMetadata[]>([])
   const [nftStorage, setNftStorage] = useState<NFTStorage>()
   const [web3Storage, setWeb3Storage] = useState<Web3Storage>()
+  const [threadDBListener, setThreadDBListener] = useState<any>()
+  const [collName] = useState('metaworth')
 
   const [showAssetInfo, setShowAssetInfo] = useBoolean()
   const { isOpen: isAssetDrawerOpen, onOpen: onOpenAssetDrawer, onClose: onCloseAssetDrawer } = useDisclosure()
-  const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
 
   const dispatch = useDispatch()
+
+  const { identity, buckets, threadDBClient, bucketKey, threadID } = useTextile()
+
+  const loadNFTAssets = useCallback(async () => {
+    if (!threadDBClient || !threadID) return
+
+    const collections = await threadDBClient?.listCollections(ThreadID.fromString(threadID))
+    let coll = collections?.find(c => c.name === collName)
+    if (!coll) {
+      await threadDBClient?.newCollection(ThreadID.fromString(threadID), { name: collName })
+    }
+
+    const nftAssets = await threadDBClient?.find<NftAsset>(ThreadID.fromString(threadID), collName, {})
+    // const ids = await nftAssets.map((instance: any) => instance['_id'])
+    // await threadDBClient.delete(ThreadID.fromString(threadID), collName, ids)
+    
+    setNftAssets(nftAssets || [])
+    dispatch(setLoading(false))
+  }, [collName, dispatch, threadDBClient, threadID])
+
+  const setupListener = useCallback(() => {
+    if (!threadDBClient || !threadID) return
+    const callback = (update?: Update<any>) => {
+      if (!update || !update.instance) return
+      console.log('New update:', update.instance.name, update)
+      // loadNFTAssets()
+    }
+    const listener = threadDBClient?.listen(ThreadID.fromString(threadID), [], callback)
+    setThreadDBListener(listener)
+  }, [threadDBClient, threadID])
+
+  useEffect(() => {
+    dispatch(setLoading(true))
+    if (!threadDBClient || !threadID) return
+    loadNFTAssets()
+  }, [threadDBClient, threadID, loadNFTAssets, dispatch])
+
+  useEffect(() => {
+    if (!threadDBClient || !threadID) return
+    
+    if (!threadDBListener) {
+      setupListener()
+    }
+  }, [threadDBClient, threadID, threadDBListener, setupListener])
 
   useEffect(() => {
     if (!nftStorage) {
@@ -60,7 +96,7 @@ const Assets = () => {
     
   }, [nftStorage, web3Storage])
 
-  const upload = useCallback(async (nftAssets: FileMetadata[]) => {
+  const upload = useCallback(async (assetsMeta: FileMetadata[]) => {
     // show the root cid as soon as it's ready
     const onRootCidReady = (cid: string) => {
       console.log('uploading files with cid:', cid)
@@ -68,7 +104,7 @@ const Assets = () => {
 
     const sFiles: FileMetadata[] = []
     // when each chunk is stored, update the percentage complete and display
-    const totalSize = nftAssets.map(f => {
+    const totalSize = assetsMeta.map(f => {
       sFiles.push(f)
       return f.size
     }).reduce((a, b) => a + b, 0)
@@ -90,18 +126,59 @@ const Assets = () => {
     // unpack File objects from the response
     const files = await res.files()
     for (const file of files) {
-      const f = nftAssets.filter(item => item.name === file.name)
-      assetsWithCid.push({ fileMetadata: f[0], cid: file.cid })
+      const f = assetsMeta.filter(item => item.name === file.name)
+      const md = {
+        cid: file.cid,
+        // @ts-ignore
+        name: file.name,
+        // @ts-ignore
+        size: file.size,
+        // @ts-ignore
+        lastModified: f[0].lastModified,
+        lastModifiedDate: f[0].lastModifiedDate,
+        path: f[0].path,
+        // @ts-ignore
+        type: f[0].type,
+        ...f[0]
+      }
+      const asset = { assetMetadata: md, '_id': file.cid }
+      // save it to textile
+      threadDBClient?.create(ThreadID.fromString(threadID), collName, [asset])
+      assetsWithCid.push(asset)
     }
-    setNftAssets((prevArray) => [...prevArray, ...assetsWithCid])
+
+    setNftAssets((prevArray) => [...assetsWithCid, ...prevArray])
     dispatch(setLoading(false))
-  }, [dispatch, web3Storage])
+  }, [collName, dispatch, threadDBClient, threadID, web3Storage])
   
   useEffect(() => {
-    if (assets.length > 0 && web3Storage) {
+    if (assets && assets.length > 0 && web3Storage) {
       upload(assets)
     }
   }, [assets, upload, web3Storage])
+
+  const processFiles = (acceptedFiles: FileMetadata[]) => {
+    const filteredFiles = acceptedFiles.filter((f: FileMetadata) => {
+      if (assets.length === 0) return true
+
+      const fAssets = assets?.filter(a => a && a.name !== f.name)
+      return fAssets && fAssets.length > 0
+    })
+    
+    if (filteredFiles.length === 0) {
+      dispatch(setLoading(false))
+      return
+    }
+
+    filteredFiles.map((file: FileMetadata) => {
+      // console.log(`${JSON.stringify(file)} - ${file.path} - ${file.size} bytes`)
+
+      return Object.assign(file, {
+        preview: URL.createObjectURL(file)
+      })
+    })
+    setAssets(filteredFiles)
+  }
 
   const {
     getRootProps,
@@ -111,17 +188,10 @@ const Assets = () => {
     accept: 'image/*',
     noKeyboard: true,
     noClick: true,
-    onDrop: (acceptedFiles: any) => {
+    onDrop: (acceptedFiles: FileMetadata[]) => {
       dispatch(setLoading(true))
 
-      setAssets(acceptedFiles.map((file: any) => {
-        console.log(`${file.path} - ${file.size} bytes`)
-
-        const md = Object.assign(file, {
-          preview: URL.createObjectURL(file)
-        })
-        return md
-      }))
+      processFiles(acceptedFiles)
     }
   })
 
@@ -133,73 +203,35 @@ const Assets = () => {
     onOpenAssetDrawer()
   }
 
-  const previews = nftAssets.map(({ fileMetadata: file, cid, title, desc }) => (
-    <Box cursor="pointer" key={file.name} borderWidth="1px" maxW={'sm'} borderRadius="lg" overflow="hidden" onClick={() => onAssetSelected(file)}>
-      <Flex height={300} alignItems={'center'} justifyContent={'center'}  overflow={'hidden'}>
-        <Flex alignItems={'center'} justifyContent={'center'} overflow={'hidden'}>
-          <Image src={file.preview} alt={file.name} className="abc"/>
-        </Flex>
-      </Flex>
-
-      <Box p="3">
-        <Box
-          mt="1"
-          fontWeight="semibold"
-          as="h4"
-          lineHeight="tight"
-          isTruncated
-          title={file?.name}
-        >
-          {file.name}
-        </Box>
-
-        <Box
-          color="gray.500"
-          fontWeight="extrabold"
-          letterSpacing="wide"
-          fontSize="xs"
-          textTransform="uppercase"
-        >
-          {
-            cid ? (
-              <Link d="flex" alignItems="center" href={`https://ipfs.io/ipfs/${cid}`} isExternal title={cid}>
-                {`${cid.slice(0, 8)}...${cid.substr(-8)}`} <ExternalLinkIcon ml={2} />
-              </Link>
-            ) : ''
-          }
-        </Box>
-      </Box>
-
-    </Box>
-  ))
-
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
-      <AssetsHeader disableButtons={assets.length === 0} onUploadOpen={open} />
+      <AssetsHeader disableButtons={!nftAssets || (nftAssets && nftAssets.length === 0)} onUploadOpen={open} />
 
-      <Box
-        mt={3}
-        {...getRootProps()}
-        w={'100%'}
-        minH={'calc(100vh - 60px - 1rem)'}>
-        <input {...getInputProps()} />
+      <TextileContext.Provider value={{identity, buckets, bucketKey, threadID, threadDBClient}}>
+        <Box
+          mt={3}
+          {...getRootProps()}
+          w={'100%'}
+          minH={'calc(100vh - 60px - 1rem)'}>
+          <input {...getInputProps()} />
 
-        {
-          assets.length === 0 ? (
-            <Box>Assets not found. You can drag & drop files here, or click the Upload button on the top right to select files</Box>
-          ) : (
-              <Grid templateColumns="repeat(5, 1fr)">
-                <GridItem colSpan={selectedAsset ? 11 : 14}>
-                  <SimpleGrid minChildWidth="15rem" spacing={2}>
-                    {previews}
-                  </SimpleGrid>
-                </GridItem>
-              </Grid>
-          )
-        }
-      </Box>
-
-      <AssetDrawer onClose={onCloseAssetDrawer} isOpen={isAssetDrawerOpen} selectedAsset={selectedAsset}  />
+          {
+            nftAssets && nftAssets.length === 0 ? (
+              <Box>NFT Assets not found. You can drag & drop asset files here, or click the Upload button on the top right to select asset files</Box>
+            ) : (
+                <Grid templateColumns="repeat(5, 1fr)">
+                  <GridItem colSpan={selectedAsset ? 11 : 14}>
+                    <SimpleGrid minChildWidth="15rem" spacing={2}>
+                      <AssetPreview nftAssets={nftAssets} onAssetSelected={onAssetSelected} />
+                    </SimpleGrid>
+                  </GridItem>
+                </Grid>
+            )
+          }
+        </Box>
+      
+        <AssetDrawer onClose={onCloseAssetDrawer} isOpen={isAssetDrawerOpen} selectedAsset={selectedAsset} />
+      </TextileContext.Provider>
     </Container>
   )
 }

@@ -1,4 +1,4 @@
-import { FC, useState } from 'react'
+import { FC, useState, useRef } from 'react'
 import {
   Box,
   Accordion,
@@ -41,6 +41,8 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
   const [isMinted, setIsMinted] = useState(false)
 
   const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
+
+  const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
 
   /**
 	 * Mint Nft
