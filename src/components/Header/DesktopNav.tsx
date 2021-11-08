@@ -34,19 +34,10 @@ export const DesktopNav = (props: BoxProps) => {
       {NAV_ITEMS.map((navItem) => (
         <LinkBox
           key={navItem.label}
-          p={2}
-          style={`/${splitLocation[1]}` === navItem.href ? {
-            textDecoration: 'none',
-            color: useColorModeValue('#4AD3A6', '#4AD3A6'),
-            borderRadius: 10,
-            backgroundColor: '#4AD3A6'
-          } : undefined}
-          _hover={{
-            textDecoration: 'none',
-            color: useColorModeValue('#4AD3A6', '#4AD3A6'), // useColorModeValue('gray.800', 'white'),
-            rounded: 10,
-            backgroundColor: '#4AD3A6'
-          }}>
+          px={2}
+          py={1}
+          
+          >
           <Popover trigger={'hover'} placement={'bottom-start'} gutter={25}>
             {({ onClose }) => (
               <>
@@ -57,16 +48,36 @@ export const DesktopNav = (props: BoxProps) => {
                         as={NavLink}
                         to={navItem.href ?? '/'}
                         fontSize={'sm'}
-                        fontWeight={500}
-                        color={useColorModeValue('gray.600', 'gray.200')}>
+                        fontWeight={800}
+                        style={`/${splitLocation[1]}` === navItem.href ? {
+                          textDecoration: 'none',
+                          color: useColorModeValue('#4AD3A6', '#4AD3A6'),
+                          borderRadius: 10,
+                        } : undefined}
+                        _hover={{
+                          textDecoration: 'none',
+                          color: useColorModeValue('#4AD3A6', '#4AD3A6'),
+                          rounded: 10,
+                        }}
+                      >
                         {navItem.label}
                       </LinkOverlay>
                     ) : (
                       <LinkOverlay
                         cursor={'pointer'}
                         fontSize={'sm'}
-                        fontWeight={500}
-                        color={useColorModeValue('gray.600', 'gray.200')}>
+                        fontWeight={800}
+                        style={`/${splitLocation[1]}` === navItem.href ? {
+                          textDecoration: 'none',
+                          color: useColorModeValue('#4AD3A6', '#4AD3A6'),
+                          borderRadius: 10,
+                        } : undefined}
+                        _hover={{
+                          textDecoration: 'none',
+                          color: useColorModeValue('#4AD3A6', '#4AD3A6'),
+                          rounded: 10,
+                        }}
+                      >
                         {navItem.label}
                       </LinkOverlay>
                     )

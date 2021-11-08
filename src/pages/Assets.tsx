@@ -7,7 +7,6 @@ import {
   SimpleGrid,
   Grid,
   GridItem,
-  useBoolean,
   useDisclosure,
   useColorModeValue,
 } from '@chakra-ui/react'
@@ -27,7 +26,7 @@ const Assets = () => {
   const color = useColorModeValue('black', 'black')
 
   const [assets, setAssets] = useState<FileMetadata[]>([])
-  const [selectedAsset, setSelectedAsset] = useState<FileMetadata>()
+  const [selectedAsset, setSelectedAsset] = useState<NftAsset>()
 
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
   const [nftStorage, setNftStorage] = useState<NFTStorage>()
@@ -35,12 +34,11 @@ const Assets = () => {
   const [threadDBListener, setThreadDBListener] = useState<any>()
   const [collName] = useState('metaworth')
 
-  const [showAssetInfo, setShowAssetInfo] = useBoolean()
   const { isOpen: isAssetDrawerOpen, onOpen: onOpenAssetDrawer, onClose: onCloseAssetDrawer } = useDisclosure()
 
   const dispatch = useDispatch()
 
-  const { identity, buckets, threadDBClient, bucketKey, threadID } = useTextile()
+  const { threadDBClient, threadID } = useTextile()
 
   const loadNFTAssets = useCallback(async () => {
     if (!threadDBClient || !threadID) return
@@ -195,10 +193,7 @@ const Assets = () => {
     }
   })
 
-  const onAssetSelected = (asset: FileMetadata) => {
-    if (!selectedAsset || selectedAsset?.name === asset.name) {
-      setShowAssetInfo.toggle()
-    }
+  const onAssetSelected = (asset: NftAsset) => {
     setSelectedAsset(asset)
     onOpenAssetDrawer()
   }
@@ -207,7 +202,7 @@ const Assets = () => {
     <Container color={color} maxW={{ lg: '7xl' }}>
       <AssetsHeader disableButtons={!nftAssets || (nftAssets && nftAssets.length === 0)} onUploadOpen={open} />
 
-      <TextileContext.Provider value={{identity, buckets, bucketKey, threadID, threadDBClient}}>
+      <TextileContext.Provider value={{threadID, threadDBClient, web3Storage}}>
         <Box
           mt={3}
           {...getRootProps()}

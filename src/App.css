@@ -1,3 +1,6 @@
 ._loading_overlay_overlay {
-  z-index: 999;
+  z-index: 1600;
+}
+.css-lzr3bi-LoadingOverlayWrapperBase {
+  background: rgba(0, 0, 0, 0.48);
 }
