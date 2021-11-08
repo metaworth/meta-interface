@@ -1,4 +1,4 @@
-import { FC, useState, useRef } from 'react'
+import { FC, useState, useRef, useContext, useEffect } from 'react'
 import {
   Box,
   Accordion,
@@ -20,50 +20,179 @@ import {
   DrawerContent,
   DrawerCloseButton,
   useColorModeValue,
-  useDisclosure
+  useToast,
+  Link
 } from '@chakra-ui/react'
+import { useDispatch } from 'react-redux'
 import { FaPlus, FaMinus } from 'react-icons/fa'
 import AssetMetadata from '../AssetMetadata'
-import FileMetadata from '../../interfaces/FileMetadata'
+import { TextileContext } from '../../context'
+import { setLoading } from '../../store'
+import { ThreadID } from '@textile/hub'
+import NftAsset from '../../interfaces/NftAsset'
+import { useContractFunction } from '@web3app/core'
+import { Contract } from '@ethersproject/contracts'
+
 
 interface AssetDrawerProps {
   isOpen: boolean
-  selectedAsset: FileMetadata | undefined
+  selectedAsset: NftAsset | undefined
   onClose: () => void
 }
+
+const MetaContractAddr = '0xaE97e70B20a8dc81d3183598B3E8905b8D24F871'
+const MetaContractAbi = [
+  'function mint(string memory _tokenURI) external payable returns (uint256)'
+]
+const contract = new Contract(MetaContractAddr, MetaContractAbi)
 
 const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) => {
   const color = useColorModeValue('black', 'black')
 
-  const [title, setTitle] = useState()
-  const [desc, setDesc] = useState()
-  const [tokenId, setTokenId] = useState('')
-  const [isMinted, setIsMinted] = useState(false)
-
-  const { isOpen: isMintOpen, onOpen: onMintOpen, onClose: onMintClose } = useDisclosure()
+  const [title, setTitle] = useState<string | undefined>()
+  const [desc, setDesc] = useState<string | undefined>()
+  const [tokenId] = useState('')
 
   const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
+
+  const { threadDBClient, threadID, web3Storage } = useContext(TextileContext)
+
+  const toast = useToast()
+
+  const dispatch = useDispatch()
+
+  // @ts-ignore
+  const { state, send } = useContractFunction(contract, 'mint', { transactionName: 'mintNFT' })
+
+  useEffect(() => {
+    if (!state || state.status === 'None') return
+
+    if (state.status === 'Mining' || state.status === 'Success') {
+      toast({
+        title: `${state.status}`,
+        status: 'success',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg={'teal'} borderRadius={5}>
+            {
+              state.transaction?.hash ? (
+                <>
+                  <Box>{state.status}</Box>
+                  <span>Tx hash: </span>
+                  <Link isExternal={true} href={`https://mumbai.polygonscan.com/tx/${state.transaction?.hash}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                </>
+              ) : ''
+            }
+          </Box>
+        )
+      })
+    } else if (state.status === 'Exception' || state.status === 'Fail') {
+      toast({
+        title: `${state.status}`,
+        status: 'error',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg="red" borderRadius={5}>
+            {
+              state.transaction?.hash ? (
+                <>
+                  <span>Tx hash:</span>
+                  <Link isExternal={true} href={`https://mumbai.polygonscan.com/tx/${state.transaction?.hash}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                </>
+              ) : ''
+            }
+          </Box>
+        )
+      })
+    }
+  }, [state, toast])
 
   /**
 	 * Mint Nft
 	 */
 	const lazyMint = async () => {
-    onMintOpen()
+    if (!threadDBClient || !threadID || !selectedAsset) return
 
-    console.log('lazy mint')
+    dispatch(setLoading(true))
 
-    onMintClose()
+    const asset = await threadDBClient?.findByID<NftAsset>(ThreadID.fromString(threadID), 'metaworth', selectedAsset.assetMetadata.cid!)
+    if (asset) {
+      asset.name = title
+      asset.desc = desc
+    }
+
+    // call web3 storage to save data
+    const blob = new Blob([JSON.stringify({...asset, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], {type : 'application/json'})
+  
+    const files = [new File([blob], `${title}.json`)]
+    const cid = await web3Storage?.put(files)
+
+    await send(`https://${cid}.ipfs.dweb.link/${title}.json`)
+
+    console.log('state status:', state.status)
+    if (state.status === 'Success') {
+      asset.minted = true
+      asset.nftMetadadtaCid = cid
+    }
+    await threadDBClient.save(ThreadID.fromString(threadID), 'metaworth', [asset])
+
+    dispatch(setLoading(false))
+    onDrawerClose()
 	}
+
+  useEffect(() => {
+    if (selectedAsset) {
+      setTitle(selectedAsset.name)
+      setDesc(selectedAsset.desc)
+    }
+  }, [selectedAsset])
+
+  const onDrawerClose = () => {
+    setTitle(undefined)
+    setDesc(undefined)
+
+    onClose()
+  }
+
+  const onSave = async () => {
+    if (!threadDBClient || !threadID || !selectedAsset) return
+
+    dispatch(setLoading(true))
+    const asset = await threadDBClient?.findByID<NftAsset>(ThreadID.fromString(threadID), 'metaworth', selectedAsset.assetMetadata.cid!)
+
+    if (asset) {
+      asset.name = title
+      asset.desc = desc
+
+      await threadDBClient.save(ThreadID.fromString(threadID), 'metaworth', [asset])
+    }
+
+    dispatch(setLoading(false))
+
+    toast({
+      description: `Metadata updated`,
+      status: 'success',
+      variant: 'left-accent',
+      position: 'top-right',
+      isClosable: true,
+    })
+    onClose()
+  }
 
   return (
     <>
       <Drawer
         placement="right"
-        onClose={onClose}
+        onClose={onDrawerClose}
         isOpen={isOpen}
         closeOnEsc={true}
         closeOnOverlayClick={true}
         size={'xl'}
+        finalFocusRef={cancelRef}
       >
         <DrawerOverlay />
 
@@ -91,7 +220,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                           </AccordionButton>
                         </h2>
                         <AccordionPanel pb={4}>
-                          <AssetMetadata assetMetadata={selectedAsset} />
+                          <AssetMetadata assetMetadata={selectedAsset?.assetMetadata} />
                         </AccordionPanel>
                       </>
                     )}
@@ -118,6 +247,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                             <Input
                               placeholder="e.g. Awesome avatar"
                               isReadOnly={!!tokenId}
+                              value={title}
                               onChange={(e: any) => setTitle(e.target.value)}
                             />
                           </FormControl>
@@ -127,6 +257,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                               placeholder="e.g. More details info about the awesome avatar"
                               isReadOnly={!!tokenId}
                               resize={'vertical'}
+                              value={desc}
                               onChange={(e: any) => setDesc(e.target.value)}
                             />
                           </FormControl>
@@ -142,11 +273,21 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
           </DrawerBody>
           <DrawerFooter d="flex" alignItems="center" justifyContent={'center'}>
             <Stack mt={2} spacing={30} direction="row">
+              <Button colorScheme="teal" variant="outline" onClick={onDrawerClose}>
+                Cancel
+              </Button>
+
               {
                 !tokenId ? (
-                  <Button colorScheme="teal" size="md" disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
-                    Lazy Mint
-                  </Button>
+                  <>
+                    <Button colorScheme="blue" size="md" disabled={!title || !selectedAsset} onClick={() => onSave()}>
+                      Save
+                    </Button>
+                    
+                    <Button colorScheme="teal" size="md" disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
+                      Mint
+                    </Button>
+                  </>
                 ) : ''
               }
 
@@ -157,9 +298,6 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                   </Button>
                 ) : ''
               }
-              <Button colorScheme="teal" onClick={onMintClose} isDisabled={!isMinted}>
-                Close
-              </Button>
             </Stack>
           </DrawerFooter>
         </DrawerContent>

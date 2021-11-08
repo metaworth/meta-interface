@@ -4,10 +4,11 @@ interface NftAsset {
   id?: string
   assetMetadata: FileMetadata
   nftMetadadtaCid?: string
-  title?: string
+  name?: string
   desc?: string
   tokenId?: string
   sellOrder?: any
+  minted?: boolean
 }
 
 export default NftAsset

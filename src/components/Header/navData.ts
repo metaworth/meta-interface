@@ -8,7 +8,7 @@ export interface NavItem {
 
 export const NAV_ITEMS: Array<NavItem> = [
   {
-    label: 'Assets Inventory',
+    label: 'Asset Collection',
     href: '/',
   },
   {
