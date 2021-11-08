@@ -16,6 +16,11 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+  PopoverBody,
+  PopoverArrow,
 } from '@chakra-ui/react'
 import { CloseIcon, HamburgerIcon, ChevronDownIcon } from '@chakra-ui/icons'
 import { IoMoon, IoSunny } from 'react-icons/io5'
@@ -128,7 +133,7 @@ export const Header = () => {
                 color={'#4AD3A6'}
                 ml={1}
                 display={{ base: 'none', md: 'block' }}>
-                Meta Worth
+                Metaworth
               </Heading>
             </Stack>
             <HStack pl={{ base: 2, sm: 4 }} alignItems={'center'}>
@@ -210,7 +215,15 @@ export const Header = () => {
                   onClick={deactivate}
                 >
                   <BiWallet size="20" />
-                  <Box ml={1}>{shortenIfAddress(account)}</Box>
+                  <Popover trigger={'hover'}>
+                    <PopoverTrigger>
+                      <Box ml={1}>{shortenIfAddress(account)}</Box>
+                    </PopoverTrigger>
+                    <PopoverContent width={'auto'}>
+                      <PopoverArrow />
+                      <PopoverBody>Click to disconnect your wallet</PopoverBody>
+                    </PopoverContent>
+                  </Popover>
                 </Box>
               ) : (
                 <Button onClick={() => activateBrowserWallet()}>Connect Wallet</Button>
