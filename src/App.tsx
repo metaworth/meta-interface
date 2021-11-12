@@ -1,4 +1,4 @@
-import { Switch, Route } from 'react-router-dom'
+import { Switch, Route, Redirect } from 'react-router-dom'
 import {
   ChakraProvider,
   useColorModeValue,
@@ -11,9 +11,11 @@ import LoadingOverlay from 'react-loading-overlay-ts'
 import ClockLoader from 'react-spinners/ClockLoader'
 import { Header } from './components/Header/index'
 import Campaign from './pages/Campaign'
+import Collections from './pages/Collections'
 import Assets from './pages/Assets'
 import Mint from './pages/Mint'
 import './App.css'
+
 
 function App({ isLoadingActive }: { isLoadingActive: boolean }) {
   return (
@@ -28,7 +30,10 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
 
         <Box bg={useColorModeValue('gray.50', 'gray.900')} pt={'calc(60px + 1rem)'}>
           <Switch>
-            <Route exact path="/">
+            <Route exact path="/collections">
+              <Collections />
+            </Route>
+            <Route exact path="/collections/assets">
               <Assets />
             </Route>
             <Route path="/token/mint">
@@ -37,6 +42,8 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
             <Route path="/token/campaign">
               <Campaign />
             </Route>
+
+            <Redirect from="/" to="/collections" />
           </Switch>
         </Box>
       </LoadingOverlay>
