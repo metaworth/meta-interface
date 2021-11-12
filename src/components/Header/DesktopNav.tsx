@@ -36,8 +36,7 @@ export const DesktopNav = (props: BoxProps) => {
           key={navItem.label}
           px={2}
           py={1}
-          
-          >
+        >
           <Popover trigger={'hover'} placement={'bottom-start'} gutter={25}>
             {({ onClose }) => (
               <>
