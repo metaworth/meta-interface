@@ -13,35 +13,35 @@ import {
   FormLabel,
   Input,
   Textarea,
-} from '@chakra-ui/react';
-import { useState } from 'react';
+} from '@chakra-ui/react'
+import { useState } from 'react'
 
 interface CreateCollectionModalProps {
-  isOpen: boolean;
-  onClose: VoidFunction;
+  isOpen: boolean
+  onClose: VoidFunction
 }
 
 const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const [collectionName, setCollectionName] = useState('');
-  const [description, setDescription] = useState('');
+  const [collectionName, setCollectionName] = useState('')
+  const [description, setDescription] = useState('')
 
   const createCollection = (event: any) => {
-    event.preventDefault();
+    event.preventDefault()
     alert(
       `Form submitted with collection name: ${collectionName} and description: ${description}`
-    );
-    onClose();
-  };
+    )
+    onClose()
+  }
 
-  const formId = 'create-collection-form';
+  const formId = 'create-collection-form'
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={'full'}>
       <ModalOverlay />
-      <ModalContent alignItems='center'>
+      <ModalContent alignItems='center' borderRadius='none'>
         <Box maxW='sm' width='sm' marginTop='36'>
           <ModalHeader marginBottom='16' padding='0' fontSize='2xl'>
             <Center>Create your collection </Center>
@@ -82,7 +82,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
         </Box>
       </ModalContent>
     </Modal>
-  );
-};
+  )
+}
 
-export default CreateCollectionModal;
+export default CreateCollectionModal

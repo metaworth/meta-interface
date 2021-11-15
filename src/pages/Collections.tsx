@@ -5,17 +5,17 @@ import {
   Button,
   useColorModeValue,
   useDisclosure,
-} from '@chakra-ui/react';
-import { HiPlus } from 'react-icons/hi';
-import CreateCollectionModal from '../components/Collections/CreateCollectionModal';
+} from '@chakra-ui/react'
+import { HiPlus } from 'react-icons/hi'
+import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
 
 const Collections = () => {
-  const color = useColorModeValue('black', 'black');
-  const { isOpen, onOpen, onClose } = useDisclosure();
+  const color = useColorModeValue('black', 'black')
+  const { isOpen, onOpen, onClose } = useDisclosure()
 
   const onCreateCollection = () => {
-    onOpen();
-  };
+    onOpen()
+  }
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -41,7 +41,7 @@ const Collections = () => {
       <Box minH={'calc(100vh - 60px)'} mt={3}></Box>
       <CreateCollectionModal onClose={onClose} isOpen={isOpen} />
     </Container>
-  );
-};
+  )
+}
 
-export default Collections;
+export default Collections

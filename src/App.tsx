@@ -1,20 +1,20 @@
-import { Switch, Route, Redirect } from 'react-router-dom';
+import { Switch, Route, Redirect } from 'react-router-dom'
 import {
   ChakraProvider,
   useColorModeValue,
   CSSReset,
   Box,
-} from '@chakra-ui/react';
-import { connect } from 'react-redux';
-import LoadingOverlay from 'react-loading-overlay-ts';
-import ClockLoader from 'react-spinners/ClockLoader';
-import { Header } from './components/Header/index';
-import Campaign from './pages/Campaign';
-import Collections from './pages/Collections';
-import Assets from './pages/Assets';
-import Mint from './pages/Mint';
-import './App.css';
-import theme from './helpers/theme';
+} from '@chakra-ui/react'
+import { connect } from 'react-redux'
+import LoadingOverlay from 'react-loading-overlay-ts'
+import ClockLoader from 'react-spinners/ClockLoader'
+import { Header } from './components/Header/index'
+import Campaign from './pages/Campaign'
+import Collections from './pages/Collections'
+import Assets from './pages/Assets'
+import Mint from './pages/Mint'
+import './App.css'
+import theme from './helpers/theme'
 
 function App({ isLoadingActive }: { isLoadingActive: boolean }) {
   return (
@@ -50,13 +50,13 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
         </Box>
       </LoadingOverlay>
     </ChakraProvider>
-  );
+  )
 }
 
 const mapStateToProps = (state: any) => {
   return {
     isLoadingActive: state.isLoading,
-  };
-};
+  }
+}
 
-export default connect(mapStateToProps)(App);
+export default connect(mapStateToProps)(App)
