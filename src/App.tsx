@@ -4,7 +4,6 @@ import {
   useColorModeValue,
   CSSReset,
   Box,
-  theme,
 } from '@chakra-ui/react'
 import { connect } from 'react-redux'
 import LoadingOverlay from 'react-loading-overlay-ts'
@@ -15,35 +14,38 @@ import Collections from './pages/Collections'
 import Assets from './pages/Assets'
 import Mint from './pages/Mint'
 import './App.css'
-
+import theme from './helpers/theme'
 
 function App({ isLoadingActive }: { isLoadingActive: boolean }) {
   return (
     <ChakraProvider theme={theme}>
       <CSSReset />
-      
+
       <LoadingOverlay
         active={isLoadingActive}
-        spinner={<ClockLoader color="rgb(74, 211, 166)" />}
+        spinner={<ClockLoader color='rgb(74, 211, 166)' />}
       >
         <Header />
 
-        <Box bg={useColorModeValue('gray.50', 'gray.900')} pt={'calc(60px + 1rem)'}>
+        <Box
+          bg={useColorModeValue('gray.50', 'gray.900')}
+          pt={'calc(60px + 1rem)'}
+        >
           <Switch>
-            <Route exact path="/collections">
+            <Route exact path='/collections'>
               <Collections />
             </Route>
-            <Route exact path="/collections/assets">
+            <Route exact path='/collections/assets'>
               <Assets />
             </Route>
-            <Route path="/token/mint">
+            <Route path='/token/mint'>
               <Mint />
             </Route>
-            <Route path="/token/campaign">
+            <Route path='/token/campaign'>
               <Campaign />
             </Route>
 
-            <Redirect from="/" to="/collections" />
+            <Redirect from='/' to='/collections' />
           </Switch>
         </Box>
       </LoadingOverlay>
@@ -53,7 +55,7 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
 
 const mapStateToProps = (state: any) => {
   return {
-    isLoadingActive: state.isLoading
+    isLoadingActive: state.isLoading,
   }
 }
 
