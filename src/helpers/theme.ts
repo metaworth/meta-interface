@@ -6,7 +6,7 @@ const config: ThemeConfig = {
 }
 
 const colors: Colors = {
-  meta: {
+  metaPrimary: {
     50: '#4ad3a616',
     100: '#f7fafc',
     // 200: 'blue',
@@ -17,6 +17,18 @@ const colors: Colors = {
     700: '#dddfe2',
     // 800: 'black',
     900: '#1a202c',
+  },
+  metaSecondary: {
+    // 50: '#4ad3a616',
+    // 100: '#f7fafc',
+    // 200: 'blue',
+    // 300: 'red',
+    // 400: 'green',
+    500: '#3358bb',
+    // 600: '#3BD3A5',
+    // 700: '#dddfe2',
+    // 800: 'black',
+    // 900: '#1a202c',
   },
 }
 
