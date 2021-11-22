@@ -72,10 +72,14 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             </form>
           </ModalBody>
           <ModalFooter justifyContent='space-between'>
-            <Button colorScheme='meta' variant='outline' onClick={onClose}>
+            <Button
+              colorScheme='metaPrimary'
+              variant='outline'
+              onClick={onClose}
+            >
               Cancel
             </Button>
-            <Button colorScheme='meta' type='submit' form={formId}>
+            <Button colorScheme='metaPrimary' type='submit' form={formId}>
               Submit
             </Button>
           </ModalFooter>
