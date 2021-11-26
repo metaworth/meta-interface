@@ -30,6 +30,7 @@ const Assets = () => {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([])
   const [isAllSelected, setIsAllSelected] = useState(false)
   const [selectedToMint, setSelectedToMint] = useState(false)
+  const [selectedToTransfer, setSelectedToTransfer] = useState(false)
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
   const [nftStorage, setNftStorage] = useState<NFTStorage>()
   const [web3Storage, setWeb3Storage] = useState<Web3Storage>()
@@ -253,12 +254,25 @@ const Assets = () => {
   }
 
   const onBatchMint = () => {
-    alert(`Calling API with the following asset IDs: ${selectedAssetIds}`)
+    alert(
+      `Calling Mint API endpoint with the following asset IDs: ${selectedAssetIds}`
+    )
+  }
+
+  const onBatchTransfer = () => {
+    alert(
+      `Calling Transfer API endpoint with the following asset IDs: ${selectedAssetIds}`
+    )
   }
 
   const onSelectToMint = () => {
     if (selectedToMint) setSelectedAssetIds([]) // Clear all if already selection in progress
     setSelectedToMint(!selectedToMint)
+  }
+
+  const onSelectToTransfer = () => {
+    if (selectedToTransfer) setSelectedAssetIds([]) // Clear all if already selection in progress
+    setSelectedToTransfer(!selectedToTransfer)
   }
 
   return (
@@ -267,11 +281,16 @@ const Assets = () => {
         onSelectAllClick={onSelectAll}
         isAllSelected={isAllSelected}
         readyToMint={!!selectedAssetIds.length}
+        readyToTransfer={!!selectedAssetIds.length}
         disableButtons={!nftAssets || (nftAssets && nftAssets.length === 0)}
         onUploadOpen={open}
         onSelectToMintClick={onSelectToMint}
+        onSelectToTransferClick={onSelectToTransfer}
         selectedToMint={selectedToMint}
+        selectedToTransfer={selectedToTransfer}
         onBatchMint={onBatchMint}
+        onBatchTransfer={onBatchTransfer}
+        text="Select to Mint"
       />
 
       <TextileContext.Provider
@@ -291,9 +310,9 @@ const Assets = () => {
               click the Upload button on the top right to select asset files
             </Box>
           ) : (
-            <Grid templateColumns='repeat(5, 1fr)'>
+            <Grid templateColumns="repeat(5, 1fr)">
               <GridItem colSpan={displayedAsset ? 11 : 14}>
-                <SimpleGrid minChildWidth='15rem' spacing={2}>
+                <SimpleGrid minChildWidth="15rem" spacing={2}>
                   <AssetPreviews
                     selectedAssetIds={selectedAssetIds}
                     nftAssets={nftAssets}

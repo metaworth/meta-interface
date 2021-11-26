@@ -3,27 +3,37 @@ import { Box, Flex, Button, Text, Spacer, HStack, Icon } from '@chakra-ui/react'
 import { HiUpload } from 'react-icons/hi'
 import { CustomRoundedCheckbox } from './MintButton/CustomRoundedCheckbox'
 import { FaChevronCircleRight } from 'react-icons/fa'
+import ExpandableButton from './ExpandableButton'
 
 interface AssetsHeaderProps {
   disableButtons: boolean
   isAllSelected: boolean
   onBatchMint: VoidFunction
+  onBatchTransfer: VoidFunction
   onSelectAllClick: (isAllSelected: boolean) => void
   onSelectToMintClick: VoidFunction
+  onSelectToTransferClick: VoidFunction
   onUploadOpen: VoidFunction
   readyToMint: boolean
+  readyToTransfer: boolean
   selectedToMint: boolean
+  selectedToTransfer: boolean
+  text: string
 }
 
 const AssetsHeader: FC<AssetsHeaderProps> = ({
   disableButtons,
   isAllSelected,
   onBatchMint,
+  onBatchTransfer,
   onSelectAllClick,
   onSelectToMintClick,
+  onSelectToTransferClick,
   onUploadOpen,
   readyToMint,
+  readyToTransfer,
   selectedToMint,
+  selectedToTransfer,
 }) => {
   return (
     <>
@@ -41,7 +51,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
           leftIcon={<HiUpload />}
           size={'sm'}
           onClick={onUploadOpen}
-          color='white'
+          color="white"
         >
           Upload
         </Button>
@@ -54,17 +64,17 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
         mt={3}
       >
         <Box>
-          <Button
+          {/* <Button
             p={0}
             fontSize={'sm'}
             ml={2}
             borderRadius={5}
-            border='2px'
-            borderColor='black'
+            border="2px"
+            borderColor="black"
             bgColor={'white'}
             size={'md'}
             disabled={disableButtons}
-            d='inline-block'
+            d="inline-block"
             style={{
               transition: 'width .5s ease',
               width: selectedToMint ? '394px' : '144px',
@@ -74,7 +84,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
             _active={{ bg: selectedToMint ? 'transparent' : 'initial' }}
           >
             <Box>
-              <Flex alignItems='center'>
+              <Flex alignItems="center">
                 <Box
                   mr={selectedToMint ? 2 : 0}
                   pl={4}
@@ -86,7 +96,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
                   <Text>Select to Mint</Text>
                 </Box>
                 {selectedToMint && (
-                  <ExtendedSelectToMintButtonElements
+                  <ExtendedSelectToOperateButtonElements
                     onSelectAllClick={onSelectAllClick}
                     isAllSelected={isAllSelected}
                     readyToMint={readyToMint}
@@ -97,17 +107,72 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
             </Box>
           </Button>
           <Button
+            p={0}
             fontSize={'sm'}
             ml={2}
             borderRadius={5}
-            border='2px'
-            borderColor='black'
+            border="2px"
+            borderColor="black"
             bgColor={'white'}
             size={'md'}
             disabled={disableButtons}
+            d="inline-block"
+            style={{
+              transition: 'width .5s ease',
+              width: selectedToMint ? '394px' : '144px',
+            }}
+            _hover={{ bg: selectedToMint ? 'transparent' : 'gray.200' }}
+            _focus={{ boxShadow: selectedToMint ? 'none' : 'initial' }}
+            _active={{ bg: selectedToMint ? 'transparent' : 'initial' }}
           >
-            Select to Transfer
-          </Button>
+            <Box>
+              <Flex alignItems="center">
+                <Box
+                  mr={selectedToMint ? 2 : 0}
+                  pl={4}
+                  pr={4}
+                  pt={2}
+                  pb={2}
+                  onClick={onSelectToTransferClick}
+                >
+                  <Text>Select to Transfer</Text>
+                </Box>
+                {selectedToMint && (
+                  <ExtendedSelectToOperateButtonElements
+                    onSelectAllClick={onSelectAllClick}
+                    isAllSelected={isAllSelected}
+                    readyToMint={readyToMint}
+                    onBatchMint={onBatchMint}
+                  />
+                )}
+              </Flex>
+            </Box>
+          </Button> */}
+
+          <ExpandableButton
+            disableButtons={disableButtons}
+            isAllSelected={isAllSelected}
+            onBatchOperate={onBatchMint}
+            onSelectAllClick={onSelectAllClick}
+            onSelectToOperateClick={onSelectToMintClick}
+            onUploadOpen={onUploadOpen}
+            readyToOperate={readyToMint}
+            selectedToOperate={selectedToMint}
+            text={'Select to Mint'}
+            batchOperateText={'Batch Mint'}
+          ></ExpandableButton>
+          <ExpandableButton
+            disableButtons={disableButtons}
+            isAllSelected={isAllSelected}
+            onBatchOperate={onBatchTransfer}
+            onSelectAllClick={onSelectAllClick}
+            onSelectToOperateClick={onSelectToTransferClick}
+            onUploadOpen={onUploadOpen}
+            readyToOperate={readyToTransfer}
+            selectedToOperate={selectedToTransfer}
+            text={'Select to Transfer'}
+            batchOperateText={'Batch Transfer'}
+          ></ExpandableButton>
         </Box>
 
         {/* <Box as={Flex} alignItems={'center'}>
@@ -141,39 +206,3 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
 }
 
 export default AssetsHeader
-
-const ExtendedSelectToMintButtonElements: FC<
-  Pick<
-    AssetsHeaderProps,
-    'onSelectAllClick' | 'isAllSelected' | 'readyToMint' | 'onBatchMint'
-  >
-> = ({ onSelectAllClick, isAllSelected, readyToMint, onBatchMint }) => {
-  return (
-    <>
-      <Spacer />
-      <HStack pr={4}>
-        <CustomRoundedCheckbox
-          onClick={() => onSelectAllClick(!isAllSelected)}
-          isFullyChecked={isAllSelected}
-          isPartiallyChecked={readyToMint}
-          label={isAllSelected ? 'Deselect All' : 'Select All'}
-        />
-        <Text fontSize={'sm'}>|</Text>
-        <Flex>
-          <Button
-            fontSize={'sm'}
-            variant='link'
-            disabled={!readyToMint}
-            _hover={{ textDecoration: 'none' }}
-            color={readyToMint ? 'metaPrimary.500' : 'gray.600'}
-            lineHeight='1'
-            onClick={onBatchMint}
-          >
-            Batch Mint
-            <Icon ml={2} w={5} h={5} as={FaChevronCircleRight} />
-          </Button>
-        </Flex>
-      </HStack>
-    </>
-  )
-}
