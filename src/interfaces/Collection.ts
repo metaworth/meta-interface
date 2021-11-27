@@ -1,9 +1,12 @@
 interface Collection {
   id: string
-  name: string
+  collectionName: string
+  totalSupply: number
   description: string
-  balance: number
+  contractAddress: string
   imageUrl: string
+  symbol: string
+  _id?: string
 }
 
 export default Collection

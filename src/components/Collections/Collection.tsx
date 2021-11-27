@@ -6,7 +6,7 @@ interface CollectionProps {
 }
 
 const Collection: React.FC<CollectionProps> = ({ collection }) => {
-  const { balance, imageUrl, description, name } = collection
+  const { totalSupply, imageUrl = "https://baconmockup.com/640/360", description, collectionName } = collection
 
   const showCollectionDetails = () => {
     alert(`Should go to collection details page`)
@@ -28,13 +28,13 @@ const Collection: React.FC<CollectionProps> = ({ collection }) => {
       correctly sized or this element needs a set height and width */}
       <Image src={imageUrl} borderRadius='lg' mb='5' />
       <Box fontSize='sm' fontWeight='bold' as='h4' mb='1.5'>
-        {name}
+        {collectionName}
       </Box>
       <Box fontSize='xs' fontWeight='medium' mb='1.5'>
         <Text noOfLines={2}>{description}</Text>
       </Box>
       <Box color={'metaSecondary.500'} fontSize='xs' fontWeight='extrabold'>
-        {balance} NFTs
+        {totalSupply} NFTs
       </Box>
     </Box>
   )

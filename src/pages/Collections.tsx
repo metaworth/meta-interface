@@ -7,22 +7,72 @@ import {
   useDisclosure,
   Grid,
 } from '@chakra-ui/react'
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
+import { ThreadID } from '@textile/hub'
+import { Where, Update, Client } from '@textile/hub'
+import { useEthers } from 'web3-sdk'
+
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
+import useTextile from '../hooks/use-textile'
 import CollectionInterface from '../interfaces/Collection'
+
+const loadCollections = async (ownerAddress: string, threadDBClient: Client, threadID: string): Promise<CollectionInterface[]> => {
+  const query = new Where('ownerAddress').eq(ownerAddress);
+  const storedCollections: CollectionInterface[] = await threadDBClient.find(ThreadID.fromString(threadID), "testCollections", query);
+
+  return storedCollections.map((collection) => ({
+    ...collection,
+    id: collection._id
+  })) as CollectionInterface[]
+}
+
 const Collections = () => {
+  const { account: ownerAddress } = useEthers();
   const color = useColorModeValue('black', 'black')
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { threadDBClient, threadID } = useTextile()
+  const [threadDBListener, setThreadDBListener] = useState<any>()
 
+  const [collections, setCollections] = useState<CollectionInterface[]>([]);
   const onCreateCollection = () => {
     onOpen()
   }
 
+  const setupListener = useCallback(() => {
+    if (!threadDBClient || !threadID || !ownerAddress) return
+    const callback = (update?: Update<any>) => {
+      if (!update || !update.instance) return
+
+      (async () => {
+        const existedCollections = await loadCollections(ownerAddress, threadDBClient, threadID)
+        setCollections(existedCollections)
+      })();
+    }
+    const listener = threadDBClient?.listen(
+      ThreadID.fromString(threadID),
+      [],
+      callback
+    )
+    setThreadDBListener(listener)
+  }, [ownerAddress, threadDBClient, threadID])
+
   useEffect(() => {
-    // TODO: Call api and save data to state
-  })
+    if (!threadDBClient || !threadID) return
+
+    if (!threadDBListener) {
+      setupListener()
+    }
+  }, [threadDBClient, threadID, threadDBListener, setupListener])
+
+  useEffect(() => {
+    if (!threadDBClient || !threadID || !ownerAddress) return
+    (async () => {
+      const existedCollections = await loadCollections(ownerAddress, threadDBClient, threadID);
+      setCollections(existedCollections)
+    })()
+  }, [ownerAddress, threadDBClient, threadID])
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -49,7 +99,7 @@ const Collections = () => {
         {/* TODO: No responsive designs given. Just adding 4 columns as default
         after following existing designs */}
         <Grid templateColumns='repeat(4, 1fr)' gap={5}>
-          {mockCollectionsResponse.map((collection) => (
+          {collections.map((collection) => (
             <Collection collection={collection} key={collection.id} />
           ))}
         </Grid>
@@ -62,45 +112,55 @@ const Collections = () => {
 export default Collections
 
 //TODO: Remove when connected to API
-const mockCollectionsResponse: CollectionInterface[] = [
+const mockCollections: CollectionInterface[] = [
   {
     id: '1',
-    name: 'Bored Ape Yatch Club 1',
+    collectionName: 'Bored Ape Yatch Club 1',
     description:
       'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 0,
+    totalSupply: 0,
     imageUrl: 'https://baconmockup.com/640/360',
+    symbol: "BORED1",
+    contractAddress: Math.random().toString()
   },
   {
     id: '2',
-    name: 'Bored Ape Yatch Club 2',
+    collectionName: 'Bored Ape Yatch Club 2',
     description:
       'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 188,
+    totalSupply: 188,
     imageUrl: 'https://www.placecage.com/640/360',
+    symbol: "BORED2",
+    contractAddress: Math.random().toString()
   },
   {
     id: '3',
-    name: 'Bored Ape Yatch Club 3',
+    collectionName: 'Bored Ape Yatch Club 3',
     description:
       'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 50,
+    totalSupply: 50,
     imageUrl: 'https://placekitten.com/640/360',
+    symbol: "BORED3",
+    contractAddress: Math.random().toString()
   },
   {
     id: '4',
-    name: 'Bored Ape Yatch Club 4',
+    collectionName: 'Bored Ape Yatch Club 4',
     description:
       'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 100,
+    totalSupply: 100,
     imageUrl: 'https://baconmockup.com/640/360',
+    symbol: "BORED4",
+    contractAddress: Math.random().toString()
   },
   {
     id: '5',
-    name: 'Bored Ape Yatch Club 5',
+    collectionName: 'Bored Ape Yatch Club 5',
     description:
       'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 0,
+    totalSupply: 0,
     imageUrl: 'https://baconmockup.com/640/360',
+    symbol: "BORED5",
+    contractAddress: Math.random().toString()
   },
 ]
