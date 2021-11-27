@@ -268,11 +268,17 @@ const Assets = () => {
   const onSelectToMint = () => {
     if (selectedToMint) setSelectedAssetIds([]) // Clear all if already selection in progress
     setSelectedToMint(!selectedToMint)
+
+    setSelectedToTransfer(false)
+    setSelectedAssetIds([])
   }
 
   const onSelectToTransfer = () => {
     if (selectedToTransfer) setSelectedAssetIds([]) // Clear all if already selection in progress
     setSelectedToTransfer(!selectedToTransfer)
+
+    setSelectedToMint(false)
+    setSelectedAssetIds([])
   }
 
   return (
@@ -318,7 +324,7 @@ const Assets = () => {
                     nftAssets={nftAssets}
                     onOpenAssetDrawer={onDisplayAsset}
                     onAssetSelectionToggle={updateSelectedAssetIdsOnToggle}
-                    isSelectionEnabled={selectedToMint}
+                    isSelectionEnabled={selectedToMint || selectedToTransfer}
                   />
                 </SimpleGrid>
               </GridItem>
