@@ -6,33 +6,36 @@ import ExpandableButton from './ExpandableButton'
 interface AssetsHeaderProps {
   disableButtons: boolean
   isAllSelected: boolean
-  onBatchMint: VoidFunction
-  onBatchTransfer: VoidFunction
+  onBatch: VoidFunction
   onSelectAllClick: (isAllSelected: boolean) => void
   onSelectToMintClick: VoidFunction
   onSelectToTransferClick: VoidFunction
   onUploadOpen: VoidFunction
-  readyToMint: boolean
-  readyToTransfer: boolean
+  readyToBatch: boolean
   selectedToMint: boolean
   selectedToTransfer: boolean
-  text: string
 }
 
 const AssetsHeader: FC<AssetsHeaderProps> = ({
   disableButtons,
   isAllSelected,
-  onBatchMint,
-  onBatchTransfer,
+  onBatch,
   onSelectAllClick,
   onSelectToMintClick,
   onSelectToTransferClick,
   onUploadOpen,
-  readyToMint,
-  readyToTransfer,
+  readyToBatch,
   selectedToMint,
   selectedToTransfer,
 }) => {
+  const commonButtonProps = {
+    isDisabled: disableButtons,
+    isFullyChecked: isAllSelected,
+    onSubmit: onBatch,
+    onCheckboxClick: onSelectAllClick,
+    readyToSubmit: readyToBatch,
+  }
+
   return (
     <>
       <Box as={Flex} justifyContent={'space-between'} alignItems={'center'}>
@@ -49,7 +52,7 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
           leftIcon={<HiUpload />}
           size={'sm'}
           onClick={onUploadOpen}
-          color="white"
+          color='white'
         >
           Upload
         </Button>
@@ -62,115 +65,22 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
         mt={3}
       >
         <Box>
-          {/* <Button
-            p={0}
-            fontSize={'sm'}
-            ml={2}
-            borderRadius={5}
-            border="2px"
-            borderColor="black"
-            bgColor={'white'}
-            size={'md'}
-            disabled={disableButtons}
-            d="inline-block"
-            style={{
-              transition: 'width .5s ease',
-              width: selectedToMint ? '394px' : '144px',
-            }}
-            _hover={{ bg: selectedToMint ? 'transparent' : 'gray.200' }}
-            _focus={{ boxShadow: selectedToMint ? 'none' : 'initial' }}
-            _active={{ bg: selectedToMint ? 'transparent' : 'initial' }}
-          >
-            <Box>
-              <Flex alignItems="center">
-                <Box
-                  mr={selectedToMint ? 2 : 0}
-                  pl={4}
-                  pr={4}
-                  pt={2}
-                  pb={2}
-                  onClick={onSelectToMintClick}
-                >
-                  <Text>Select to Mint</Text>
-                </Box>
-                {selectedToMint && (
-                  <ExtendedSelectToOperateButtonElements
-                    onSelectAllClick={onSelectAllClick}
-                    isAllSelected={isAllSelected}
-                    readyToMint={readyToMint}
-                    onBatchMint={onBatchMint}
-                  />
-                )}
-              </Flex>
-            </Box>
-          </Button>
-          <Button
-            p={0}
-            fontSize={'sm'}
-            ml={2}
-            borderRadius={5}
-            border="2px"
-            borderColor="black"
-            bgColor={'white'}
-            size={'md'}
-            disabled={disableButtons}
-            d="inline-block"
-            style={{
-              transition: 'width .5s ease',
-              width: selectedToMint ? '394px' : '144px',
-            }}
-            _hover={{ bg: selectedToMint ? 'transparent' : 'gray.200' }}
-            _focus={{ boxShadow: selectedToMint ? 'none' : 'initial' }}
-            _active={{ bg: selectedToMint ? 'transparent' : 'initial' }}
-          >
-            <Box>
-              <Flex alignItems="center">
-                <Box
-                  mr={selectedToMint ? 2 : 0}
-                  pl={4}
-                  pr={4}
-                  pt={2}
-                  pb={2}
-                  onClick={onSelectToTransferClick}
-                >
-                  <Text>Select to Transfer</Text>
-                </Box>
-                {selectedToMint && (
-                  <ExtendedSelectToOperateButtonElements
-                    onSelectAllClick={onSelectAllClick}
-                    isAllSelected={isAllSelected}
-                    readyToMint={readyToMint}
-                    onBatchMint={onBatchMint}
-                  />
-                )}
-              </Flex>
-            </Box>
-          </Button> */}
-
           <ExpandableButton
-            disableButtons={disableButtons}
-            isAllSelected={isAllSelected}
-            onBatchOperate={onBatchMint}
-            onSelectAllClick={onSelectAllClick}
-            onSelectToOperateClick={onSelectToMintClick}
-            onUploadOpen={onUploadOpen}
-            readyToOperate={readyToMint}
-            selectedToOperate={selectedToMint}
-            text={'Select to Mint'}
-            batchOperateText={'Batch Mint'}
-          ></ExpandableButton>
+            {...commonButtonProps}
+            onExpandToggle={onSelectToMintClick}
+            isExpanded={selectedToMint}
+            label={'Select to Mint'}
+            submitButtonLabel={'Batch Mint'}
+            width={128}
+          />
           <ExpandableButton
-            disableButtons={disableButtons}
-            isAllSelected={isAllSelected}
-            onBatchOperate={onBatchTransfer}
-            onSelectAllClick={onSelectAllClick}
-            onSelectToOperateClick={onSelectToTransferClick}
-            onUploadOpen={onUploadOpen}
-            readyToOperate={readyToTransfer}
-            selectedToOperate={selectedToTransfer}
-            text={'Select to Transfer'}
-            batchOperateText={'Batch Transfer'}
-          ></ExpandableButton>
+            {...commonButtonProps}
+            onExpandToggle={onSelectToTransferClick}
+            isExpanded={selectedToTransfer}
+            label={'Select to Transfer'}
+            submitButtonLabel={'Batch Transfer'}
+            width={155}
+          />
         </Box>
 
         {/* <Box as={Flex} alignItems={'center'}>

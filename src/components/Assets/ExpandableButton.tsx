@@ -1,31 +1,41 @@
 import { FC } from 'react'
-import { Box, Flex, Button, Text, Spacer, HStack, Icon } from '@chakra-ui/react'
+import {
+  Box,
+  Flex,
+  Button,
+  Text,
+  Spacer,
+  HStack,
+  Icon,
+  SlideFade,
+} from '@chakra-ui/react'
 import { CustomRoundedCheckbox } from './MintButton/CustomRoundedCheckbox'
 import { FaChevronCircleRight } from 'react-icons/fa'
 
-interface ExpandableButtonProps {
-  disableButtons: boolean
-  isAllSelected: boolean
-  onBatchOperate: VoidFunction
-  onSelectAllClick: (isAllSelected: boolean) => void
-  onSelectToOperateClick: VoidFunction
-  onUploadOpen: VoidFunction
-  readyToOperate: boolean
-  selectedToOperate: boolean
-  text: string
-  batchOperateText: string
+export interface ExpandableCheckboxButtonProps {
+  isDisabled: boolean
+  isFullyChecked: boolean
+  onSubmit: VoidFunction
+  onCheckboxClick: (isFullyChecked: boolean) => void
+  onExpandToggle: VoidFunction
+  readyToSubmit: boolean
+  isExpanded: boolean
+  label: string
+  submitButtonLabel: string
+  width: number
 }
 
-const ExpandableButton: FC<ExpandableButtonProps> = ({
-  disableButtons,
-  isAllSelected,
-  onBatchOperate,
-  onSelectAllClick,
-  onSelectToOperateClick,
-  readyToOperate,
-  selectedToOperate,
-  text,
-  batchOperateText,
+const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
+  isDisabled,
+  isFullyChecked,
+  onSubmit,
+  onCheckboxClick,
+  onExpandToggle,
+  readyToSubmit,
+  isExpanded,
+  label,
+  submitButtonLabel,
+  width,
 }) => {
   return (
     <Button
@@ -33,40 +43,52 @@ const ExpandableButton: FC<ExpandableButtonProps> = ({
       fontSize={'sm'}
       ml={2}
       borderRadius={5}
-      border="2px"
-      borderColor="black"
+      border='2px'
+      borderColor='black'
       bgColor={'white'}
       size={'md'}
-      disabled={disableButtons}
-      d="inline-block"
+      disabled={isDisabled}
+      d='inline-block'
       style={{
-        transition: 'width .5s ease',
-        width: selectedToOperate ? '394px' : '144px',
+        transition: 'width .3s ease',
+        width: isExpanded ? '440px' : `${width}px`,
       }}
-      _hover={{ bg: selectedToOperate ? 'transparent' : 'gray.200' }}
-      _focus={{ boxShadow: selectedToOperate ? 'none' : 'initial' }}
-      _active={{ bg: selectedToOperate ? 'transparent' : 'initial' }}
+      _hover={{ bg: isExpanded ? 'transparent' : 'gray.200' }}
+      _focus={{ boxShadow: isExpanded ? 'none' : 'initial' }}
+      _active={{ bg: isExpanded ? 'transparent' : 'initial' }}
     >
       <Box>
-        <Flex alignItems="center">
+        <Flex alignItems='center'>
           <Box
-            mr={selectedToOperate ? 2 : 0}
+            mr={isExpanded ? 2 : 0}
             pl={4}
             pr={4}
             pt={2}
             pb={2}
-            onClick={onSelectToOperateClick}
+            onClick={onExpandToggle}
           >
-            <Text>{text}</Text>
+            <Text>{label}</Text>
           </Box>
-          {selectedToOperate && (
-            <ExtendedSelectToOperateButtonElements
-              onSelectAllClick={onSelectAllClick}
-              isAllSelected={isAllSelected}
-              readyToOperate={readyToOperate}
-              onBatchOperate={onBatchOperate}
-              batchOperateText={batchOperateText}
-            />
+          {isExpanded && (
+            <Flex ml={'auto'}>
+              <SlideFade
+                transition={{
+                  enter: {
+                    duration: 0.1,
+                    delay: 0.3,
+                  },
+                }}
+                in={isExpanded}
+              >
+                <ExtendedCheckboxButtonElements
+                  onCheckboxClick={onCheckboxClick}
+                  isFullyChecked={isFullyChecked}
+                  readyToSubmit={readyToSubmit}
+                  onSubmit={onSubmit}
+                  submitButtonLabel={submitButtonLabel}
+                />
+              </SlideFade>
+            </Flex>
           )}
         </Flex>
       </Box>
@@ -76,44 +98,45 @@ const ExpandableButton: FC<ExpandableButtonProps> = ({
 
 export default ExpandableButton
 
-interface ExtendedSelectToOperateButtonElementsProps {
-  isAllSelected: boolean
-  onBatchOperate: VoidFunction
-  onSelectAllClick: (isAllSelected: boolean) => void
-  readyToOperate: boolean
-  batchOperateText: string
-}
+type ExtendedSelectToOperateButtonElementsProps = Pick<
+  ExpandableCheckboxButtonProps,
+  | 'isFullyChecked'
+  | 'onSubmit'
+  | 'onCheckboxClick'
+  | 'readyToSubmit'
+  | 'submitButtonLabel'
+>
 
-const ExtendedSelectToOperateButtonElements: FC<ExtendedSelectToOperateButtonElementsProps> =
+const ExtendedCheckboxButtonElements: FC<ExtendedSelectToOperateButtonElementsProps> =
   ({
-    onSelectAllClick,
-    isAllSelected,
-    readyToOperate,
-    onBatchOperate,
-    batchOperateText,
+    isFullyChecked,
+    readyToSubmit,
+    onSubmit,
+    submitButtonLabel,
+    onCheckboxClick,
   }) => {
     return (
       <>
         <Spacer />
         <HStack pr={4}>
           <CustomRoundedCheckbox
-            onClick={() => onSelectAllClick(!isAllSelected)}
-            isFullyChecked={isAllSelected}
-            isPartiallyChecked={readyToOperate}
-            label={isAllSelected ? 'Deselect All' : 'Select All'}
+            onClick={() => onCheckboxClick(!isFullyChecked)}
+            isFullyChecked={isFullyChecked}
+            isPartiallyChecked={readyToSubmit}
+            label={isFullyChecked ? 'Deselect All' : 'Select All'}
           />
           <Text fontSize={'sm'}>|</Text>
           <Flex>
             <Button
               fontSize={'sm'}
-              variant="link"
-              disabled={!readyToOperate}
+              variant='link'
+              disabled={!readyToSubmit}
               _hover={{ textDecoration: 'none' }}
-              color={readyToOperate ? 'metaPrimary.500' : 'gray.600'}
-              lineHeight="1"
-              onClick={onBatchOperate}
+              color={readyToSubmit ? 'metaPrimary.500' : 'gray.600'}
+              lineHeight='1'
+              onClick={onSubmit}
             >
-              {batchOperateText}
+              {submitButtonLabel}
               <Icon ml={2} w={5} h={5} as={FaChevronCircleRight} />
             </Button>
           </Flex>

@@ -1,5 +1,5 @@
 import { FC } from 'react'
-import { Box, Image, Link, Flex, ScaleFade, Slide, SlideFade } from '@chakra-ui/react'
+import { Box, Image, Link, Flex, SlideFade } from '@chakra-ui/react'
 import { ExternalLinkIcon } from '@chakra-ui/icons'
 import NftAsset from '../../interfaces/NftAsset'
 import { CustomRoundedCheckbox } from './MintButton/CustomRoundedCheckbox'
