@@ -1,8 +1,6 @@
 import { FC } from 'react'
-import { Box, Flex, Button, Text, Spacer, HStack, Icon } from '@chakra-ui/react'
+import { Box, Flex, Button } from '@chakra-ui/react'
 import { HiUpload } from 'react-icons/hi'
-import { CustomRoundedCheckbox } from './MintButton/CustomRoundedCheckbox'
-import { FaChevronCircleRight } from 'react-icons/fa'
 import ExpandableButton from './ExpandableButton'
 
 interface AssetsHeaderProps {
