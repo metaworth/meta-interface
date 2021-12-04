@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, SetStateAction } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useDispatch } from 'react-redux'
 import {
@@ -30,6 +30,7 @@ const Assets = () => {
   const [selectedAssetIds, setSelectedAssetIds] = useState<string[]>([])
   const [isAllSelected, setIsAllSelected] = useState(false)
   const [selectedToMint, setSelectedToMint] = useState(false)
+  const [selectedToTransfer, setSelectedToTransfer] = useState(false)
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
   const [nftStorage, setNftStorage] = useState<NFTStorage>()
   const [web3Storage, setWeb3Storage] = useState<Web3Storage>()
@@ -252,13 +253,33 @@ const Assets = () => {
     else setSelectedAssetIds([])
   }
 
+  const onBatch = () => {
+    if (selectedToMint) onBatchMint()
+    if (selectedToTransfer) onBatchTransfer()
+  }
+
   const onBatchMint = () => {
-    alert(`Calling API with the following asset IDs: ${selectedAssetIds}`)
+    alert(
+      `Calling Mint API endpoint with the following asset IDs: ${selectedAssetIds}`
+    )
+  }
+
+  const onBatchTransfer = () => {
+    alert(
+      `Calling Transfer API endpoint with the following asset IDs: ${selectedAssetIds}`
+    )
   }
 
   const onSelectToMint = () => {
-    if (selectedToMint) setSelectedAssetIds([]) // Clear all if already selection in progress
     setSelectedToMint(!selectedToMint)
+    setSelectedToTransfer(false)
+    setSelectedAssetIds([])
+  }
+
+  const onSelectToTransfer = () => {
+    setSelectedToMint(false)
+    setSelectedToTransfer(!selectedToTransfer)
+    setSelectedAssetIds([])
   }
 
   return (
@@ -266,12 +287,14 @@ const Assets = () => {
       <AssetsHeader
         onSelectAllClick={onSelectAll}
         isAllSelected={isAllSelected}
-        readyToMint={!!selectedAssetIds.length}
+        readyToBatch={!!selectedAssetIds.length}
         disableButtons={!nftAssets || (nftAssets && nftAssets.length === 0)}
         onUploadOpen={open}
         onSelectToMintClick={onSelectToMint}
+        onSelectToTransferClick={onSelectToTransfer}
         selectedToMint={selectedToMint}
-        onBatchMint={onBatchMint}
+        selectedToTransfer={selectedToTransfer}
+        onBatch={onBatch}
       />
 
       <TextileContext.Provider
@@ -299,7 +322,7 @@ const Assets = () => {
                     nftAssets={nftAssets}
                     onOpenAssetDrawer={onDisplayAsset}
                     onAssetSelectionToggle={updateSelectedAssetIdsOnToggle}
-                    isSelectionEnabled={selectedToMint}
+                    isSelectionEnabled={selectedToMint || selectedToTransfer}
                   />
                 </SimpleGrid>
               </GridItem>
