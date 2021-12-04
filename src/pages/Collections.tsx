@@ -10,17 +10,22 @@ import {
 import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
 import { ThreadID } from '@textile/hub'
-import { Where, Update, Client } from '@textile/hub'
+import { Update } from '@textile/hub'
 import { useEthers } from 'web3-sdk'
+import { useDispatch } from 'react-redux'
+
 
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
 import useTextile from '../hooks/use-textile'
 import CollectionInterface from '../interfaces/Collection'
+import * as textileClient from "../data/textileClient";
+import * as collectionData from "../data/collections";
+import { setLoading } from '../store'
 
-const loadCollections = async (ownerAddress: string, threadDBClient: Client, threadID: string): Promise<CollectionInterface[]> => {
-  const query = new Where('ownerAddress').eq(ownerAddress);
-  const storedCollections: CollectionInterface[] = await threadDBClient.find(ThreadID.fromString(threadID), "testCollections", query);
+const loadCollections = async (ownerAddress: string): Promise<CollectionInterface[]> => {  
+  const client = await textileClient.defaultThreadDbClientWithThreadID;
+  const storedCollections = await collectionData.getCollectionByOwerAddress(client, ownerAddress)
 
   return storedCollections.map((collection) => ({
     ...collection,
@@ -34,6 +39,7 @@ const Collections = () => {
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { threadDBClient, threadID } = useTextile()
   const [threadDBListener, setThreadDBListener] = useState<any>()
+  const dispatch = useDispatch()
 
   const [collections, setCollections] = useState<CollectionInterface[]>([]);
   const onCreateCollection = () => {
@@ -46,7 +52,7 @@ const Collections = () => {
       if (!update || !update.instance) return
 
       (async () => {
-        const existedCollections = await loadCollections(ownerAddress, threadDBClient, threadID)
+        const existedCollections = await loadCollections(ownerAddress)
         setCollections(existedCollections)
       })();
     }
@@ -67,12 +73,14 @@ const Collections = () => {
   }, [threadDBClient, threadID, threadDBListener, setupListener])
 
   useEffect(() => {
+    dispatch(setLoading(true))
     if (!threadDBClient || !threadID || !ownerAddress) return
     (async () => {
-      const existedCollections = await loadCollections(ownerAddress, threadDBClient, threadID);
+      const existedCollections = await loadCollections(ownerAddress);
       setCollections(existedCollections)
+      dispatch(setLoading(false))
     })()
-  }, [ownerAddress, threadDBClient, threadID])
+  }, [dispatch, ownerAddress, threadDBClient, threadID])
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -96,8 +104,7 @@ const Collections = () => {
       </Box>
 
       <Box minH={'calc(100vh - 60px)'} mt={3}>
-        {/* TODO: No responsive designs given. Just adding 4 columns as default
-        after following existing designs */}
+        {/* TODO: No responsive designs given. Just adding 4 columns as default after following existing designs */}
         <Grid templateColumns='repeat(4, 1fr)' gap={5}>
           {collections.map((collection) => (
             <Collection collection={collection} key={collection.id} />

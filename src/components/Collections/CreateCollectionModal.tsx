@@ -13,13 +13,17 @@ import {
   FormLabel,
   Input,
   Textarea,
+  useToast
 } from '@chakra-ui/react'
+import { setLoading } from '../../store'
 import { useState, useEffect } from 'react'
 import { useContractFunction } from '@web3app/core'
 import { Contract } from '@ethersproject/contracts'
-import { ThreadID } from '@textile/hub'
-import useTextile from '../../hooks/use-textile'
 import { useEthers } from 'web3-sdk'
+import { useDispatch } from 'react-redux'
+
+import * as textileClient from "../../data/textileClient";
+import * as collectionData from "../../data/collections";
 
 interface CreateCollectionModalProps {
   isOpen: boolean
@@ -41,8 +45,8 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [description, setDescription] = useState('')
   const [symbol, setSymbol] = useState('')
   const [totalSupply, setTotalSupply] = useState(0)
-
-  const { threadDBClient, threadID } = useTextile()
+  const toast = useToast()
+  const dispatch = useDispatch()
 
   //Mock the state.status change behavoir
   const [status, setStatus] = useState('')
@@ -52,46 +56,9 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
   useEffect(() => {
     (async () => {
-      // const schema = {
-      //   title: "Collections",
-      //   type: "object",
-      //   required: ["_id"],
-      //   properties: {
-      //     _id: {
-      //       type: "string",
-      //       description: "The instance's id.",
-      //     },
-      //     contractAddress: {
-      //       type: "string",
-      //       description: "Collection Contract Address",
-      //     },
-      //     ownerAddress: {
-      //       type: "string",
-      //       description: "Owner Address",
-      //     },
-      //     symbol: {
-      //       type: "string",
-      //       description: "Symbol",
-      //     },
-      //     description: {
-      //       type: "string",
-      //       description: "The description of the Collection",
-      //     },
-      //     collectionName: {
-      //       type: "string",
-      //       description: "The collections name.",
-      //     },
-      //     totalSupply: {
-      //       description: "The number of supply",
-      //       type: "integer",
-      //       minimum: 0,
-      //     },
-      //   },
-      // }
-      // await threadDBClient?.newCollection(ThreadID.fromString(threadID), { name: 'testCollections', schema });
       if (status === 'Success') {
         if (!ownerAddress) return
-        const collection = {
+        const collection: collectionData.Collection = {
           contractAddress: Math.random().toString(),
           ownerAddress,
           symbol: symbol.toUpperCase(),
@@ -99,18 +66,40 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           collectionName,
           totalSupply
         }
-        ownerAddress && await threadDBClient?.create(ThreadID.fromString(threadID), "testCollections", [collection])
+        const dbClient = await textileClient.defaultThreadDbClientWithThreadID;
+        await collectionData.createCollection(dbClient, collection);
+        toast({
+          title: `${status}`,
+          status: 'success',
+          variant: 'left-accent',
+          position: 'top-right',
+          isClosable: true,
+          render: () => (
+            <Box color="white" p={3} bg={'teal'} borderRadius={5}>
+              {
+                (
+                  <>
+                    <Box>{status}</Box>
+                    <span>Collection Name: {collectionName} for {ownerAddress}</span>
+                  </>
+                )
+              }
+            </Box>
+          )
+        })
+        dispatch(setLoading(false))
         setStatus("")
         onClose();
       }
     })();
-  }, [collectionName, description, onClose, ownerAddress, state, status, symbol, threadDBClient, threadID, totalSupply])
+  }, [collectionName, description, onClose, ownerAddress, state, status, symbol, toast, totalSupply])
 
   const createCollection = (evt: React.FormEvent) => {
     evt.preventDefault();
     (async () => {
       // TODO: Step1: need to 
       // await send("3000000000000000000", '20', '2', '1', 'ipfs://testuri/', 'Meta Test' ,'ABC');
+      dispatch(setLoading(true))
       setTimeout(() => {
         // Mock the state.status change behavoir
         setStatus('Success');

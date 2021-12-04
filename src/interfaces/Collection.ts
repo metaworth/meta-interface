@@ -1,12 +1,8 @@
-interface Collection {
+import {Collection} from '../data/collections';
+
+type CollectionInterface =  Omit<Collection, "ownerAddress"> & {
   id: string
-  collectionName: string
-  totalSupply: number
-  description: string
-  contractAddress: string
-  imageUrl: string
-  symbol: string
-  _id?: string
+  imageUrl?: string
 }
 
-export default Collection
+export default CollectionInterface

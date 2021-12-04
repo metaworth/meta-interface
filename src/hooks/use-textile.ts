@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Buckets, Client, Identity, KeyInfo, PrivateKey } from '@textile/hub'
-
+import { Client, Identity } from '@textile/hub'
+import * as textileClient from "../data/textileClient";
 
 export default function useTextile (bucketName: string = 'metaworth') {
   const [identity, setIdentity] = useState()
@@ -27,40 +27,19 @@ export default function useTextile (bucketName: string = 'metaworth') {
 }
 
 const getIdentity = async (setIdentity: any) => {
-  const cached = localStorage.getItem('user-private-identity')
-  if (cached) {
-    setIdentity(PrivateKey.fromString(cached))
-  }
-  const identity = await PrivateKey.fromRandom()
-  localStorage.setItem('user-private-identity', identity.toString())
+  const identity = await textileClient.getIdentity();
   setIdentity(identity)
 }
 
 const getBuckets = async (bucketName: string, identity: Identity, setBuckets: any, setThreadId: any, setBucketKey: any) => {
-  if (!identity) return
-
-  const keyInfo: KeyInfo = { key: process.env.REACT_APP_TEXTILE_API_KEY || '' }
-
-  const buckets = await Buckets.withKeyInfo(keyInfo)
-  await buckets.getToken(identity)
-
-  const { root, threadID } = await buckets.getOrCreate(bucketName)
-  if (!root) {
-    throw new Error('Failed to open bucket')
-  }
+  const {buckets, threadID, bucketKey} = await textileClient.getBucketByName(bucketName, identity);
 
   setBuckets(buckets)
   setThreadId(threadID)
-  setBucketKey(root.key)
+  setBucketKey(bucketKey)
 }
 
 const getThreadDBClient = async (identity: Identity, setThreadDBClient: any) => {
-  if (!identity) return
-
-  const keyInfo: KeyInfo = { key: process.env.REACT_APP_TEXTILE_API_KEY || '' }
-
-  const client = await Client.withKeyInfo(keyInfo)
-  await client.getToken(identity)
-
+  const client = await textileClient.getThreadDBClient(identity);
   setThreadDBClient(client)
 }
