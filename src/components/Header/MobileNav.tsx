@@ -24,7 +24,7 @@ export const MobileNav = ({ isOpen, onMobileNavToggle }: MobileNavProps) => {
     <Stack
       p={4}
       display={{ md: 'none' }}
-      zIndex={9999}
+      zIndex={2}
       pos="fixed"
       top="60px"
       w={'full'}
