@@ -1,3 +1,4 @@
+import { useCallback } from 'react'
 import {
   Box,
   Button,
@@ -13,34 +14,46 @@ import {
   FormLabel,
   Input,
   Textarea,
-  useToast
+  useToast,
+  Link
 } from '@chakra-ui/react'
 import { setLoading } from '../../store'
 import { useState, useEffect } from 'react'
-import { useContractFunction } from '@web3app/core'
 import { Contract } from '@ethersproject/contracts'
-import { useEthers } from 'web3-sdk'
+import {
+  useEthers,
+  useContractFunction,
+  useContractCall,
+  getExplorerTransactionLink,
+  ChainId
+} from '@web3app/core'
 import { useDispatch } from 'react-redux'
+import { ethers } from 'ethers'
+import { Interface } from '@ethersproject/abi'
 
-import * as textileClient from "../../data/textileClient";
-import * as collectionData from "../../data/collections";
+import * as textileClient from '../../data/textileClient'
+import * as collectionData from '../../data/collections'
 
 interface CreateCollectionModalProps {
   isOpen: boolean
   onClose: VoidFunction
 }
 
-const CollectionContractAddr = '0x3bc9f0Bb6b0c5e3dC9a7BF74a82325Ad1eB1E18c'
-const CollectionContractAbi = [
-  'function createNFT(uint256 _startPrice, uint256 _maxSupply, uint256 _nReserved, uint256 _maxTokensPerMint, string memory _uri, string memory _name, string memory _symbol) external'
-];
+const CollectionContractAddr = '0xa6c5bE3B80BFf6EB7852B059a06A7eE9B05938bf'
+const CollectionContractAbi = new Interface([
+  'function predictMetaAddress(bytes32 salt) external view returns (address)',
+  'function createNFT(bytes32 salt, uint256 _startPrice, uint256 _maxSupply, uint256 _nReserved, uint256 _maxTokensPerMint, string memory _uri, string memory _name, string memory _symbol) external'
+])
 const collectionContract = new Contract(CollectionContractAddr, CollectionContractAbi)
 
 const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const { account: ownerAddress } = useEthers();
+  const { account: ownerAddress, chainId } = useEthers()
+
+  const [contractAddress, setContractAddress] = useState('')
+  const [salt, setSalt] = useState('')
   const [collectionName, setCollectionName] = useState('')
   const [description, setDescription] = useState('')
   const [symbol, setSymbol] = useState('')
@@ -48,65 +61,101 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const toast = useToast()
   const dispatch = useDispatch()
 
-  //Mock the state.status change behavoir
-  const [status, setStatus] = useState('')
-
   // @ts-ignore
-  const { state, send } = useContractFunction(collectionContract, 'createNFT');
+  const { state, send } = useContractFunction(collectionContract, 'createNFT')
+  const [contractAddr] = useContractCall(
+    ownerAddress &&
+      CollectionContractAddr && 
+        salt && {
+          abi: CollectionContractAbi,
+          address: CollectionContractAddr,
+          method: 'predictMetaAddress',
+          args: [salt],
+        }
+  ) ?? []
 
   useEffect(() => {
-    (async () => {
-      if (status === 'Success') {
-        if (!ownerAddress) return
-        const collection: collectionData.Collection = {
-          contractAddress: Math.random().toString(),
-          ownerAddress,
-          symbol: symbol.toUpperCase(),
-          description,
-          collectionName,
-          totalSupply
-        }
-        const dbClient = await textileClient.defaultThreadDbClientWithThreadID;
-        await collectionData.createCollection(dbClient, collection);
-        toast({
-          title: `${status}`,
-          status: 'success',
-          variant: 'left-accent',
-          position: 'top-right',
-          isClosable: true,
-          render: () => (
-            <Box color="white" p={3} bg={'teal'} borderRadius={5}>
-              {
-                (
-                  <>
-                    <Box>{status}</Box>
-                    <span>Collection Name: {collectionName} for {ownerAddress}</span>
-                  </>
-                )
-              }
-            </Box>
-          )
-        })
-        dispatch(setLoading(false))
-        setStatus("")
-        onClose();
-      }
-    })();
-  }, [collectionName, description, onClose, ownerAddress, state, status, symbol, toast, totalSupply])
+    if (contractAddr) {
+      setContractAddress(contractAddr)
+    }
+  }, [contractAddr])
 
-  const createCollection = (evt: React.FormEvent) => {
-    evt.preventDefault();
-    (async () => {
-      // TODO: Step1: need to 
-      // await send("3000000000000000000", '20', '2', '1', 'ipfs://testuri/', 'Meta Test' ,'ABC');
-      dispatch(setLoading(true))
-      setTimeout(() => {
-        // Mock the state.status change behavoir
-        setStatus('Success');
-      }, 1000);
-    })()
+  const checkTxStatus = useCallback(async () => {
+    if (!state || state.status === 'None') return
+
+    if (state.status === 'Success') {
+      if (!ownerAddress) return
+      const collection: collectionData.Collection = {
+        contractAddress: contractAddress,
+        ownerAddress,
+        symbol: symbol.toUpperCase(),
+        description,
+        collectionName,
+        totalSupply
+      }
+      const dbClient = await textileClient.defaultThreadDbClientWithThreadID
+      await collectionData.createCollection(dbClient, collection)
+      toast({
+        title: `${state.status}`,
+        status: 'success',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg={'teal'} borderRadius={5}>
+            {
+              state.transaction?.hash ? (
+                <>
+                  <Box>{state.status}</Box>
+                  <span>Tx hash: </span>
+                  <Link isExternal={true} href={`${getExplorerTransactionLink(state.transaction?.hash, chainId || ChainId.Mainnet)}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                </>
+              ) : ''
+            }
+          </Box>
+        )
+      })
+      onClose()
+    } else if (state.status === 'Exception' || state.status === 'Fail') {
+      toast({
+        title: `${state.status}`,
+        status: 'error',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg="red" borderRadius={5}>
+            {
+              state.transaction?.hash ? (
+                <>
+                  <span>Tx hash:</span>
+                  <Link isExternal={true} href={`${getExplorerTransactionLink(state.transaction?.hash, chainId || ChainId.Mainnet)}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                </>
+              ) : ''
+            }
+          </Box>
+        )
+      })
+    }
+  }, [state])
+
+  useEffect(() => {
+    checkTxStatus()
+  }, [state])
+
+  const createCollection = async () => {
+    dispatch(setLoading(true))
+    try {
+      const salt = ethers.utils.formatBytes32String(`${collectionName}-${symbol}`)
+      setSalt(salt)
+      const price = ethers.utils.parseEther('0.03')
+      await send(salt, price, totalSupply, '1', '1', '', collectionName, symbol)
+    } catch (err: any) {
+      console.error('Error to send create collection tx, error message:', err.message || err)
+    } finally {
+      dispatch(setLoading(false))
+    }
   }
-  const formId = 'create-collection-form'
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size={'full'}>
@@ -118,52 +167,50 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           </ModalHeader>
           <ModalCloseButton />
           <ModalBody>
-            <form onSubmit={createCollection} id={formId}>
-              <FormControl isRequired>
-                <FormLabel fontSize='sm'>Collection name</FormLabel>
-                <Input
-                  placeholder='Name your collection'
-                  onChange={(event) =>
-                    setCollectionName(event.currentTarget.value)
-                  }
-                  fontSize='sm'
-                  marginBottom='5'
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel fontSize='sm'>Total Supply</FormLabel>
-                <Input
-                  placeholder='Total Supply'
-                  pattern="[0-9]*"
-                  type='number'
-                  onChange={(event) =>
-                    setTotalSupply(parseInt(event.currentTarget.value))
-                  }
-                  fontSize='sm'
-                  marginBottom='5'
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel fontSize='sm'>Symbol</FormLabel>
-                <Input
-                  placeholder='Symbol'
-                  onChange={(event) =>
-                    setSymbol(event.currentTarget.value)
-                  }
-                  fontSize='sm'
-                  marginBottom='5'
-                />
-              </FormControl>
-              <FormControl isRequired>
-                <FormLabel fontSize='sm'>Description</FormLabel>
-                <Textarea
-                  fontSize='sm'
-                  onChange={(event) =>
-                    setDescription(event.currentTarget.value)
-                  }
-                />
-              </FormControl>
-            </form>
+            <FormControl isRequired>
+              <FormLabel fontSize='sm'>Collection name</FormLabel>
+              <Input
+                placeholder='Name your collection'
+                onChange={(event) =>
+                  setCollectionName(event.currentTarget.value)
+                }
+                fontSize='sm'
+                marginBottom='5'
+              />
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel fontSize='sm'>Total Supply</FormLabel>
+              <Input
+                placeholder='Total Supply'
+                pattern="[0-9]*"
+                type='number'
+                onChange={(event) =>
+                  setTotalSupply(parseInt(event.currentTarget.value))
+                }
+                fontSize='sm'
+                marginBottom='5'
+              />
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel fontSize='sm'>Symbol</FormLabel>
+              <Input
+                placeholder='Symbol'
+                onChange={(event) =>
+                  setSymbol(event.currentTarget.value)
+                }
+                fontSize='sm'
+                marginBottom='5'
+              />
+            </FormControl>
+            <FormControl isRequired>
+              <FormLabel fontSize='sm'>Description</FormLabel>
+              <Textarea
+                fontSize='sm'
+                onChange={(event) =>
+                  setDescription(event.currentTarget.value)
+                }
+              />
+            </FormControl>
           </ModalBody>
           <ModalFooter justifyContent='space-between'>
             <Button
@@ -173,7 +220,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
             >
               Cancel
             </Button>
-            <Button colorScheme='metaPrimary' type='submit' form={formId}>
+            <Button colorScheme='metaPrimary' type='submit' onClick={() => createCollection()}>
               Submit
             </Button>
           </ModalFooter>

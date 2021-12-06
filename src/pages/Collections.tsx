@@ -14,17 +14,17 @@ import { Update } from '@textile/hub'
 import { useEthers } from 'web3-sdk'
 import { useDispatch } from 'react-redux'
 
-
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
 import useTextile from '../hooks/use-textile'
 import CollectionInterface from '../interfaces/Collection'
-import * as textileClient from "../data/textileClient";
-import * as collectionData from "../data/collections";
+import * as textileClient from '../data/textileClient'
+import * as collectionData from '../data/collections'
 import { setLoading } from '../store'
 
+
 const loadCollections = async (ownerAddress: string): Promise<CollectionInterface[]> => {  
-  const client = await textileClient.defaultThreadDbClientWithThreadID;
+  const client = await textileClient.defaultThreadDbClientWithThreadID
   const storedCollections = await collectionData.getCollectionByOwerAddress(client, ownerAddress)
 
   return storedCollections.map((collection) => ({
@@ -34,14 +34,14 @@ const loadCollections = async (ownerAddress: string): Promise<CollectionInterfac
 }
 
 const Collections = () => {
-  const { account: ownerAddress } = useEthers();
+  const { account: ownerAddress } = useEthers()
   const color = useColorModeValue('black', 'black')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { threadDBClient, threadID } = useTextile()
   const [threadDBListener, setThreadDBListener] = useState<any>()
   const dispatch = useDispatch()
 
-  const [collections, setCollections] = useState<CollectionInterface[]>([]);
+  const [collections, setCollections] = useState<CollectionInterface[]>([])
   const onCreateCollection = () => {
     onOpen()
   }
@@ -54,7 +54,7 @@ const Collections = () => {
       (async () => {
         const existedCollections = await loadCollections(ownerAddress)
         setCollections(existedCollections)
-      })();
+      })()
     }
     const listener = threadDBClient?.listen(
       ThreadID.fromString(threadID),
@@ -76,7 +76,7 @@ const Collections = () => {
     dispatch(setLoading(true))
     if (!threadDBClient || !threadID || !ownerAddress) return
     (async () => {
-      const existedCollections = await loadCollections(ownerAddress);
+      const existedCollections = await loadCollections(ownerAddress)
       setCollections(existedCollections)
       dispatch(setLoading(false))
     })()
