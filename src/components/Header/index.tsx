@@ -87,7 +87,7 @@ export const Header = () => {
         w={'full'}
         minH={'60px'}
         boxShadow={'sm'}
-        zIndex="998"
+        zIndex={1}
         justify={'center'}
         css={{
           backdropFilter: 'saturate(180%) blur(5px)',
