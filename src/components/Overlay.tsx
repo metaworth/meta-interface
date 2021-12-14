@@ -25,7 +25,7 @@ const Overlay: FC<OverlayProps> = ({ active, children }) => {
       bottom="0"
       right="0"
       overflow="hidden"
-      zIndex="3"
+      zIndex="1500"
       alignItems="center"
       justifyContent="center"
     >

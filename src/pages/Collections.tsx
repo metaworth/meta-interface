@@ -11,7 +11,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
 import { ThreadID } from '@textile/hub'
 import { Update } from '@textile/hub'
-import { useEthers } from 'web3-sdk'
+import { useEvm } from '@dapplabs/evm'
 import { useDispatch } from 'react-redux'
 
 import Collection from '../components/Collections/Collection'
@@ -34,7 +34,7 @@ const loadCollections = async (ownerAddress: string): Promise<CollectionInterfac
 }
 
 const Collections = () => {
-  const { account: ownerAddress } = useEthers()
+  const { account: ownerAddress } = useEvm()
   const color = useColorModeValue('black', 'black')
   const { isOpen, onOpen, onClose } = useDisclosure()
   const { threadDBClient, threadID } = useTextile()
@@ -89,7 +89,7 @@ const Collections = () => {
           Collections
         </Box>
         <Button
-          colorScheme='metaPrimary'
+          colorScheme={useColorModeValue('metaPrimary', 'metaPrimary')}
           borderRadius={5}
           _active={{
             transform: 'scale(0.98)',
@@ -104,12 +104,17 @@ const Collections = () => {
       </Box>
 
       <Box minH={'calc(100vh - 60px)'} mt={3}>
-        {/* TODO: No responsive designs given. Just adding 4 columns as default after following existing designs */}
-        <Grid templateColumns='repeat(4, 1fr)' gap={5}>
-          {collections.map((collection) => (
-            <Collection collection={collection} key={collection.id} />
-          ))}
-        </Grid>
+      {
+        collections.length > 0 ? (
+          <Grid templateColumns='repeat(4, 1fr)' gap={5}>
+            {collections.map((collection) => (
+              <Collection collection={collection} key={collection.id} />
+            ))}
+          </Grid>
+        ) : (
+          'No collections found'
+        )
+      }
       </Box>
       <CreateCollectionModal onClose={onClose} isOpen={isOpen} />
     </Container>
@@ -117,57 +122,3 @@ const Collections = () => {
 }
 
 export default Collections
-
-//TODO: Remove when connected to API
-const mockCollections: CollectionInterface[] = [
-  {
-    id: '1',
-    collectionName: 'Bored Ape Yatch Club 1',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    totalSupply: 0,
-    imageUrl: 'https://baconmockup.com/640/360',
-    symbol: "BORED1",
-    contractAddress: Math.random().toString()
-  },
-  {
-    id: '2',
-    collectionName: 'Bored Ape Yatch Club 2',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    totalSupply: 188,
-    imageUrl: 'https://www.placecage.com/640/360',
-    symbol: "BORED2",
-    contractAddress: Math.random().toString()
-  },
-  {
-    id: '3',
-    collectionName: 'Bored Ape Yatch Club 3',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    totalSupply: 50,
-    imageUrl: 'https://placekitten.com/640/360',
-    symbol: "BORED3",
-    contractAddress: Math.random().toString()
-  },
-  {
-    id: '4',
-    collectionName: 'Bored Ape Yatch Club 4',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    totalSupply: 100,
-    imageUrl: 'https://baconmockup.com/640/360',
-    symbol: "BORED4",
-    contractAddress: Math.random().toString()
-  },
-  {
-    id: '5',
-    collectionName: 'Bored Ape Yatch Club 5',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    totalSupply: 0,
-    imageUrl: 'https://baconmockup.com/640/360',
-    symbol: "BORED5",
-    contractAddress: Math.random().toString()
-  },
-]

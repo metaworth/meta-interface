@@ -11,6 +11,8 @@ export interface Collection {
   symbol: string
   _id?: string
   ownerAddress: string
+  numberOfReserved?: number
+  maxTokensPerWallet?: number
 }
 
 const TABLE_NAME = 'testCollections'
