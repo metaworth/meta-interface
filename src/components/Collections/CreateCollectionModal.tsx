@@ -64,7 +64,6 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   useLayoutEffect(() => {
     if (chainId) {
       const collectionContract = getContract('collection', chainId)
-      console.log('contract is>>>', collectionContract)
       if (!collectionContract) return
 
       setContractAddress(collectionContract.address)

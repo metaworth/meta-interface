@@ -16,7 +16,7 @@ import { useDispatch } from 'react-redux'
 
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
-import useTextile from '../hooks/use-textile'
+import useTextile from '../hooks/useTextile'
 import CollectionInterface from '../interfaces/Collection'
 import * as textileClient from '../data/textileClient'
 import * as collectionData from '../data/collections'
