@@ -1,15 +1,19 @@
 import { Box, Image, Text } from '@chakra-ui/react'
+import { useEvm } from '@dapplabs/evm'
 import CollectionInterface from '../../interfaces/Collection'
+import defaultCollImage from '../../assets/images/default-collection.png'
 
 interface CollectionProps {
   collection: CollectionInterface
 }
 
 const Collection: React.FC<CollectionProps> = ({ collection }) => {
-  const { balance, imageUrl, description, name } = collection
+  const { totalSupply, description, collectionName } = collection
+
+  const { chainId } = useEvm()
 
   const showCollectionDetails = () => {
-    alert(`Should go to collection details page`)
+    alert(`Should go to collection details page - ${chainId}`)
   }
 
   return (
@@ -20,21 +24,18 @@ const Collection: React.FC<CollectionProps> = ({ collection }) => {
       overflow='hidden'
       bg='#ffffff'
       p='5'
-      // TODO: Not sure what hover color is meant to be
       _hover={{ bg: '', cursor: 'pointer' }}
       onClick={showCollectionDetails}
     >
-      {/* TODO: Not sure about image sizing. Not sure if the images will be
-      correctly sized or this element needs a set height and width */}
-      <Image src={imageUrl} borderRadius='lg' mb='5' />
+      <Image src={defaultCollImage} borderRadius='lg' mb='5' />
       <Box fontSize='sm' fontWeight='bold' as='h4' mb='1.5'>
-        {name}
+        {collectionName}
       </Box>
       <Box fontSize='xs' fontWeight='medium' mb='1.5'>
         <Text noOfLines={2}>{description}</Text>
       </Box>
       <Box color={'metaSecondary.500'} fontSize='xs' fontWeight='extrabold'>
-        {balance} NFTs
+        {totalSupply} NFTs
       </Box>
     </Box>
   )

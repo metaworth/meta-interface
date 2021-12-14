@@ -30,7 +30,7 @@ import { TextileContext } from '../../context'
 import { setLoading } from '../../store'
 import { ThreadID } from '@textile/hub'
 import NftAsset from '../../interfaces/NftAsset'
-import { useContractFunction } from '@web3app/core'
+import { useEvm, useContractFunction, getExplorerTransactionLink, ChainId } from '@dapplabs/evm'
 import { Contract } from '@ethersproject/contracts'
 
 
@@ -48,6 +48,8 @@ const contract = new Contract(MetaContractAddr, MetaContractAbi)
 
 const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) => {
   const color = useColorModeValue('black', 'black')
+
+  const { chainId } = useEvm()
 
   const [title, setTitle] = useState<string | undefined>()
   const [desc, setDesc] = useState<string | undefined>()
@@ -81,7 +83,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                 <>
                   <Box>{state.status}</Box>
                   <span>Tx hash: </span>
-                  <Link isExternal={true} href={`https://mumbai.polygonscan.com/tx/${state.transaction?.hash}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                  <Link isExternal={true} href={`${getExplorerTransactionLink(state.transaction?.hash, chainId || ChainId.Mainnet)}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
                 </>
               ) : ''
             }

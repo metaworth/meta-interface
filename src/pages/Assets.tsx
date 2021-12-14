@@ -19,7 +19,7 @@ import FileMetadata from '../interfaces/FileMetadata'
 import NftAsset from '../interfaces/NftAsset'
 import { AssetDrawer, AssetsHeader } from '../components/Assets'
 import { TextileContext } from '../context'
-import useTextile from '../hooks/use-textile'
+import useTextile from '../hooks/useTextile'
 import AssetPreviews from '../components/Assets/AssetPreviews'
 
 const Assets = () => {

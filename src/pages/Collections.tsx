@@ -7,22 +7,80 @@ import {
   useDisclosure,
   Grid,
 } from '@chakra-ui/react'
-import { useEffect } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
+import { ThreadID } from '@textile/hub'
+import { Update } from '@textile/hub'
+import { useEvm } from '@dapplabs/evm'
+import { useDispatch } from 'react-redux'
+
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
+import useTextile from '../hooks/useTextile'
 import CollectionInterface from '../interfaces/Collection'
+import * as textileClient from '../data/textileClient'
+import * as collectionData from '../data/collections'
+import { setLoading } from '../store'
+
+
+const loadCollections = async (ownerAddress: string): Promise<CollectionInterface[]> => {  
+  const client = await textileClient.defaultThreadDbClientWithThreadID
+  const storedCollections = await collectionData.getCollectionByOwerAddress(client, ownerAddress)
+
+  return storedCollections.map((collection) => ({
+    ...collection,
+    id: collection._id
+  })) as CollectionInterface[]
+}
+
 const Collections = () => {
+  const { account: ownerAddress } = useEvm()
   const color = useColorModeValue('black', 'black')
   const { isOpen, onOpen, onClose } = useDisclosure()
+  const { threadDBClient, threadID } = useTextile()
+  const [threadDBListener, setThreadDBListener] = useState<any>()
+  const dispatch = useDispatch()
 
+  const [collections, setCollections] = useState<CollectionInterface[]>([])
   const onCreateCollection = () => {
     onOpen()
   }
 
+  const setupListener = useCallback(() => {
+    if (!threadDBClient || !threadID || !ownerAddress) return
+    const callback = (update?: Update<any>) => {
+      if (!update || !update.instance) return
+
+      (async () => {
+        const existedCollections = await loadCollections(ownerAddress)
+        setCollections(existedCollections)
+      })()
+    }
+    const listener = threadDBClient?.listen(
+      ThreadID.fromString(threadID),
+      [],
+      callback
+    )
+    setThreadDBListener(listener)
+  }, [ownerAddress, threadDBClient, threadID])
+
   useEffect(() => {
-    // TODO: Call api and save data to state
-  })
+    if (!threadDBClient || !threadID) return
+
+    if (!threadDBListener) {
+      setupListener()
+    }
+  }, [threadDBClient, threadID, threadDBListener, setupListener])
+
+  useEffect(() => {
+    dispatch(setLoading(true))
+    if (!threadDBClient || !threadID || !ownerAddress) return
+    (async () => {
+      const existedCollections = await loadCollections(ownerAddress)
+      setCollections(existedCollections)
+      dispatch(setLoading(false))
+    })()
+  }, [dispatch, ownerAddress, threadDBClient, threadID])
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -31,7 +89,7 @@ const Collections = () => {
           Collections
         </Box>
         <Button
-          colorScheme='metaPrimary'
+          colorScheme={useColorModeValue('metaPrimary', 'metaPrimary')}
           borderRadius={5}
           _active={{
             transform: 'scale(0.98)',
@@ -46,13 +104,17 @@ const Collections = () => {
       </Box>
 
       <Box minH={'calc(100vh - 60px)'} mt={3}>
-        {/* TODO: No responsive designs given. Just adding 4 columns as default
-        after following existing designs */}
-        <Grid templateColumns='repeat(4, 1fr)' gap={5}>
-          {mockCollectionsResponse.map((collection) => (
-            <Collection collection={collection} key={collection.id} />
-          ))}
-        </Grid>
+      {
+        collections.length > 0 ? (
+          <Grid templateColumns='repeat(4, 1fr)' gap={5}>
+            {collections.map((collection) => (
+              <Collection collection={collection} key={collection.id} />
+            ))}
+          </Grid>
+        ) : (
+          'No collections found'
+        )
+      }
       </Box>
       <CreateCollectionModal onClose={onClose} isOpen={isOpen} />
     </Container>
@@ -60,47 +122,3 @@ const Collections = () => {
 }
 
 export default Collections
-
-//TODO: Remove when connected to API
-const mockCollectionsResponse: CollectionInterface[] = [
-  {
-    id: '1',
-    name: 'Bored Ape Yatch Club 1',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 0,
-    imageUrl: 'https://baconmockup.com/640/360',
-  },
-  {
-    id: '2',
-    name: 'Bored Ape Yatch Club 2',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 188,
-    imageUrl: 'https://www.placecage.com/640/360',
-  },
-  {
-    id: '3',
-    name: 'Bored Ape Yatch Club 3',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 50,
-    imageUrl: 'https://placekitten.com/640/360',
-  },
-  {
-    id: '4',
-    name: 'Bored Ape Yatch Club 4',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 100,
-    imageUrl: 'https://baconmockup.com/640/360',
-  },
-  {
-    id: '5',
-    name: 'Bored Ape Yatch Club 5',
-    description:
-      'The Bored Ape Yacht Club is a collection of 10,000 unique Bor',
-    balance: 0,
-    imageUrl: 'https://baconmockup.com/640/360',
-  },
-]

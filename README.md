@@ -2,7 +2,9 @@
 
 This interface was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
-Mumbai Testnet Meta Contract: `0xaE97e70B20a8dc81d3183598B3E8905b8D24F871`
+## Update your contracts address
+
+You can config your own contracts address by modifying the file of `src/helper/contracts.ts`
 
 ## Available Scripts
 
