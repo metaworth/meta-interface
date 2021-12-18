@@ -1,5 +1,5 @@
 import { Box, Image, Text } from '@chakra-ui/react'
-import { useEvm } from '@dapplabs/evm'
+import { useNavigate } from 'react-router-dom'
 import CollectionInterface from '../../interfaces/Collection'
 import defaultCollImage from '../../assets/images/default-collection.png'
 
@@ -8,12 +8,12 @@ interface CollectionProps {
 }
 
 const Collection: React.FC<CollectionProps> = ({ collection }) => {
-  const { totalSupply, description, collectionName } = collection
+  const { totalSupply, description, contractName, contractAddress, chainId } = collection
 
-  const { chainId } = useEvm()
+  const navigate = useNavigate()
 
   const showCollectionDetails = () => {
-    alert(`Should go to collection details page - ${chainId}`)
+    navigate('/collections/assets',{ state: { contractAddress, contractName, chainId } })
   }
 
   return (
@@ -29,7 +29,7 @@ const Collection: React.FC<CollectionProps> = ({ collection }) => {
     >
       <Image src={defaultCollImage} borderRadius='lg' mb='5' />
       <Box fontSize='sm' fontWeight='bold' as='h4' mb='1.5'>
-        {collectionName}
+        {contractName}
       </Box>
       <Box fontSize='xs' fontWeight='medium' mb='1.5'>
         <Text noOfLines={2}>{description}</Text>

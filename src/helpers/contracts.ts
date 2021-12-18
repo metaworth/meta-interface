@@ -1,4 +1,4 @@
-import { ChainId } from '@dapplabs/evm'
+import { ChainId } from '@dapptools/evm'
 import { Interface } from 'ethers/lib/utils'
 
 type Address = {
@@ -21,6 +21,12 @@ const contracts: Contracts = {
     abi: new Interface([
       'function predictMetaAddress(bytes32 salt) external view returns (address)',
       'function createNFT(bytes32 salt, uint256 _startPrice, uint256 _maxSupply, uint256 _nReserved, uint256 _maxTokensPerMint, string memory _uri, string memory _name, string memory _symbol) external'
+    ])
+  },
+  'metaImplementation': {
+    address: {},
+    abi: new Interface([
+      'function mint(string memory _tokenURI) external payable returns (uint256)'
     ])
   }
 }

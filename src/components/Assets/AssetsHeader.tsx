@@ -1,6 +1,17 @@
 import { FC } from 'react'
-import { Box, Flex, Button } from '@chakra-ui/react'
+import {
+  Box,
+  Flex,
+  Button,
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  Text,
+  Icon,
+} from '@chakra-ui/react'
+import { InfoOutlineIcon } from '@chakra-ui/icons'
 import { HiUpload } from 'react-icons/hi'
+import { useEvm, getChainName } from '@dapptools/evm'
 import ExpandableButton from './ExpandableButton'
 
 interface AssetsHeaderProps {
@@ -14,6 +25,8 @@ interface AssetsHeaderProps {
   readyToBatch: boolean
   selectedToMint: boolean
   selectedToTransfer: boolean
+  collectionName: string
+  onChainId?: number
 }
 
 const AssetsHeader: FC<AssetsHeaderProps> = ({
@@ -27,7 +40,12 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
   readyToBatch,
   selectedToMint,
   selectedToTransfer,
+  collectionName,
+  onChainId,
 }) => {
+
+  const { chainId } = useEvm()
+
   const commonButtonProps = {
     isDisabled: disableButtons,
     isFullyChecked: isAllSelected,
@@ -39,29 +57,53 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
   return (
     <>
       <Box as={Flex} justifyContent={'space-between'} alignItems={'center'}>
-        <Box></Box>
-        <Button
-          borderRadius={5}
-          bg={'#4AD3A6'}
-          _hover={{ bg: '#3BD3A5' }}
-          _active={{
-            bg: '#dddfe2',
-            transform: 'scale(0.98)',
-            borderColor: '#bec3c9',
-          }}
-          leftIcon={<HiUpload />}
-          size={'sm'}
-          onClick={onUploadOpen}
-          color='white'
-        >
-          Upload
-        </Button>
+        <Box>
+          <Breadcrumb>
+            <BreadcrumbItem>
+              <BreadcrumbLink href='/collections'>Collection</BreadcrumbLink>
+            </BreadcrumbItem>
+
+            <BreadcrumbItem isCurrentPage>
+              <Text> { collectionName }</Text>
+            </BreadcrumbItem>
+          </Breadcrumb>
+        </Box>
+        
+        {
+          onChainId !== chainId ? (
+            <Flex direction={'row'} alignItems={'center'}>
+              <Icon as={InfoOutlineIcon} h={3} />
+              <Text fontSize='xs' color='tomato' pl={1}>
+                Switch to {getChainName(onChainId!)} to upload assets.
+              </Text>
+            </Flex>
+          ) : (
+            <Button
+              borderRadius={5}
+              bg={'#4AD3A6'}
+              _hover={{ bg: '#3BD3A5' }}
+              _active={{
+                bg: '#dddfe2',
+                transform: 'scale(0.98)',
+                borderColor: '#bec3c9',
+              }}
+              leftIcon={<HiUpload />}
+              size={'sm'}
+              onClick={onUploadOpen}
+              disabled={onChainId !== chainId}
+              color='white'
+            >
+              Upload
+            </Button>
+          )
+        }
       </Box>
 
       <Box
         as={Flex}
         justifyContent={'space-between'}
         alignItems={'center'}
+        pl={0}
         mt={3}
       >
         <Box>
@@ -73,14 +115,15 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
             submitButtonLabel={'Batch Mint'}
             width={128}
           />
-          <ExpandableButton
+          {/* <ExpandableButton
             {...commonButtonProps}
             onExpandToggle={onSelectToTransferClick}
             isExpanded={selectedToTransfer}
             label={'Select to Transfer'}
             submitButtonLabel={'Batch Transfer'}
             width={155}
-          />
+            ml={2}
+          /> */}
         </Box>
 
         {/* <Box as={Flex} alignItems={'center'}>

@@ -9,23 +9,22 @@ import {
 } from '@chakra-ui/react'
 import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
-import { ThreadID } from '@textile/hub'
 import { Update } from '@textile/hub'
-import { useEvm } from '@dapplabs/evm'
+import { useEvm } from '@dapptools/evm'
 import { useDispatch } from 'react-redux'
 
 import Collection from '../components/Collections/Collection'
 import CreateCollectionModal from '../components/Collections/CreateCollectionModal'
 import useTextile from '../hooks/useTextile'
 import CollectionInterface from '../interfaces/Collection'
-import * as textileClient from '../data/textileClient'
-import * as collectionData from '../data/collections'
+import { getThreadDbClientWithThreadID } from '../data/textileClient'
+import { getCollectionByOwerAddress } from '../data/collections'
 import { setLoading } from '../store'
 
 
 const loadCollections = async (ownerAddress: string): Promise<CollectionInterface[]> => {  
-  const client = await textileClient.defaultThreadDbClientWithThreadID
-  const storedCollections = await collectionData.getCollectionByOwerAddress(client, ownerAddress)
+  const client = await getThreadDbClientWithThreadID()
+  const storedCollections = await getCollectionByOwerAddress(client, ownerAddress)
 
   return storedCollections.map((collection) => ({
     ...collection,
@@ -34,20 +33,23 @@ const loadCollections = async (ownerAddress: string): Promise<CollectionInterfac
 }
 
 const Collections = () => {
-  const { account: ownerAddress } = useEvm()
   const color = useColorModeValue('black', 'black')
-  const { isOpen, onOpen, onClose } = useDisclosure()
+
+  const { account: ownerAddress } = useEvm()
   const { threadDBClient, threadID } = useTextile()
-  const [threadDBListener, setThreadDBListener] = useState<any>()
+  const { isOpen, onOpen, onClose } = useDisclosure()
   const dispatch = useDispatch()
 
+  const [threadDBListener, setThreadDBListener] = useState<any>()
   const [collections, setCollections] = useState<CollectionInterface[]>([])
+
   const onCreateCollection = () => {
     onOpen()
   }
 
   const setupListener = useCallback(() => {
     if (!threadDBClient || !threadID || !ownerAddress) return
+
     const callback = (update?: Update<any>) => {
       if (!update || !update.instance) return
 
@@ -56,11 +58,13 @@ const Collections = () => {
         setCollections(existedCollections)
       })()
     }
-    const listener = threadDBClient?.listen(
-      ThreadID.fromString(threadID),
+
+    const listener = threadDBClient.listen(
+      threadID,
       [],
       callback
     )
+
     setThreadDBListener(listener)
   }, [ownerAddress, threadDBClient, threadID])
 
@@ -116,7 +120,9 @@ const Collections = () => {
         )
       }
       </Box>
-      <CreateCollectionModal onClose={onClose} isOpen={isOpen} />
+      {
+        isOpen  ? <CreateCollectionModal onClose={onClose} isOpen={isOpen} /> : ''
+      }
     </Container>
   )
 }

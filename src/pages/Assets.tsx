@@ -5,15 +5,13 @@ import {
   Box,
   Container,
   SimpleGrid,
-  Grid,
-  GridItem,
   useDisclosure,
   useColorModeValue,
 } from '@chakra-ui/react'
-import { ThreadID, Update } from '@textile/hub'
-import { NFTStorage } from 'nft.storage'
-// @ts-ignore
-import { Web3Storage } from 'web3.storage/dist/bundle.esm.min.js'
+import { Update } from '@textile/hub'
+import { Web3Storage } from 'web3.storage'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useEvm } from '@dapptools/evm'
 import { setLoading } from '../store'
 import FileMetadata from '../interfaces/FileMetadata'
 import NftAsset from '../interfaces/NftAsset'
@@ -22,8 +20,14 @@ import { TextileContext } from '../context'
 import useTextile from '../hooks/useTextile'
 import AssetPreviews from '../components/Assets/AssetPreviews'
 
+
 const Assets = () => {
   const color = useColorModeValue('black', 'black')
+
+  const { account, chainId } = useEvm()
+
+  const { state: locationState } = useLocation()
+  const navigate = useNavigate()
 
   const [assets, setAssets] = useState<FileMetadata[]>([])
   const [displayedAsset, setDisplayedAsset] = useState<NftAsset>()
@@ -32,10 +36,11 @@ const Assets = () => {
   const [selectedToMint, setSelectedToMint] = useState(false)
   const [selectedToTransfer, setSelectedToTransfer] = useState(false)
   const [nftAssets, setNftAssets] = useState<NftAsset[]>([])
-  const [nftStorage, setNftStorage] = useState<NFTStorage>()
   const [web3Storage, setWeb3Storage] = useState<Web3Storage>()
   const [threadDBListener, setThreadDBListener] = useState<any>()
-  const [collName] = useState('metaworth')
+  const [contractAddress, setContractAddress] = useState<string>('')
+  const [contractName, setContractName] = useState<string>('')
+  const [onChainId, setOnChainId] = useState<number>()
 
   const {
     isOpen: isAssetDrawerOpen,
@@ -47,30 +52,38 @@ const Assets = () => {
 
   const { threadDBClient, threadID } = useTextile()
 
+  useEffect(() => {
+    if (!locationState) {
+      navigate('/collections')
+      return
+    }
+console.log('locationState.chainId:', locationState)
+    setContractAddress(locationState.contractAddress)
+    setContractName(locationState.contractName)
+    setOnChainId(locationState.chainId)
+  }, [])
+
   const loadNFTAssets = useCallback(async () => {
     if (!threadDBClient || !threadID) return
 
-    const collections = await threadDBClient?.listCollections(
-      ThreadID.fromString(threadID)
-    )
-    let coll = collections?.find((c) => c.name === collName)
+    const collections = await threadDBClient.listCollections(threadID)
+    let coll = collections.find((c) => c.name === contractAddress) 
     if (!coll) {
-      await threadDBClient?.newCollection(ThreadID.fromString(threadID), {
-        name: collName,
-      })
+      await threadDBClient.newCollection(threadID, { name: contractAddress })
     }
 
-    const nftAssets = await threadDBClient?.find<NftAsset>(
-      ThreadID.fromString(threadID),
-      collName,
+    const nftAssets = await threadDBClient.find<NftAsset>(
+      threadID,
+      contractAddress,
       {}
     )
+    console.log('nft assets:', nftAssets)
     // const ids = await nftAssets.map((instance: any) => instance['_id'])
-    // await threadDBClient.delete(ThreadID.fromString(threadID), collName, ids)
+    // await threadDBClient.delete(threadID, contractAddress, ids)
 
     setNftAssets(nftAssets || [])
     dispatch(setLoading(false))
-  }, [collName, dispatch, threadDBClient, threadID])
+  }, [contractAddress, dispatch, threadDBClient, threadID])
 
   const setupListener = useCallback(() => {
     if (!threadDBClient || !threadID) return
@@ -80,7 +93,7 @@ const Assets = () => {
       // loadNFTAssets()
     }
     const listener = threadDBClient?.listen(
-      ThreadID.fromString(threadID),
+      threadID,
       [],
       callback
     )
@@ -102,13 +115,6 @@ const Assets = () => {
   }, [threadDBClient, threadID, threadDBListener, setupListener])
 
   useEffect(() => {
-    if (!nftStorage) {
-      const client = new NFTStorage({
-        token: process.env.REACT_NFT_STORAGE_TOKEN || '',
-      })
-      setNftStorage(client)
-    }
-
     if (!web3Storage) {
       setWeb3Storage(
         new Web3Storage({
@@ -116,7 +122,7 @@ const Assets = () => {
         })
       )
     }
-  }, [nftStorage, web3Storage])
+  }, [web3Storage])
 
   const upload = useCallback(
     async (assetsMeta: FileMetadata[]) => {
@@ -137,7 +143,7 @@ const Assets = () => {
       let uploaded = 0
       const onStoredChunk = (size: number) => {
         uploaded += size
-        const pct = totalSize / uploaded
+        const pct = (uploaded / totalSize) * 100
         console.log(`Uploading... ${pct.toFixed(2)}% complete`)
       }
 
@@ -158,6 +164,7 @@ const Assets = () => {
       for (const file of files) {
         const f = assetsMeta.filter((item) => item.name === file.name)
         const md = {
+          // @ts-ignore
           cid: file.cid,
           // @ts-ignore
           name: file.name,
@@ -171,16 +178,17 @@ const Assets = () => {
           type: f[0].type,
           ...f[0],
         }
-        const asset = { assetMetadata: md, _id: file.cid }
-        // save it to textile
-        threadDBClient?.create(ThreadID.fromString(threadID), collName, [asset])
+        const asset = { contractAddress, modifier: account!, assetMetadata: md, _id: file.cid }
+        
+        await threadDBClient?.create(threadID!, contractAddress, [asset])
+        
         assetsWithCid.push(asset)
       }
 
       setNftAssets((prevArray) => [...assetsWithCid, ...prevArray])
       dispatch(setLoading(false))
     },
-    [collName, dispatch, threadDBClient, threadID, web3Storage]
+    [contractAddress, dispatch, threadDBClient, threadID, web3Storage]
   )
 
   useEffect(() => {
@@ -209,8 +217,6 @@ const Assets = () => {
     }
 
     filteredFiles.map((file: FileMetadata) => {
-      // console.log(`${JSON.stringify(file)} - ${file.path} - ${file.size} bytes`)
-
       return Object.assign(file, {
         preview: URL.createObjectURL(file),
       })
@@ -219,10 +225,11 @@ const Assets = () => {
   }
 
   const { getRootProps, getInputProps, open } = useDropzone({
-    accept: 'image/*',
+    accept: 'image/*, video/*', // application/json, 
     noKeyboard: true,
     noClick: true,
-    onDrop: (acceptedFiles: FileMetadata[]) => {
+    disabled: onChainId !== chainId,
+    onDrop: (acceptedFiles: any) => {
       dispatch(setLoading(true))
 
       processFiles(acceptedFiles)
@@ -248,7 +255,7 @@ const Assets = () => {
 
     if (isSelected)
       setSelectedAssetIds(
-        nftAssets.map((asset) => asset.assetMetadata.cid!) // Not sure why this is optional
+        nftAssets.map((asset) => asset.assetMetadata.cid!)
       )
     else setSelectedAssetIds([])
   }
@@ -271,16 +278,22 @@ const Assets = () => {
   }
 
   const onSelectToMint = () => {
+    if (isDisableHeaderButtons) return
+
     setSelectedToMint(!selectedToMint)
     setSelectedToTransfer(false)
     setSelectedAssetIds([])
   }
 
   const onSelectToTransfer = () => {
+    if (isDisableHeaderButtons) return
+
     setSelectedToMint(false)
     setSelectedToTransfer(!selectedToTransfer)
     setSelectedAssetIds([])
   }
+
+  const isDisableHeaderButtons = chainId !== onChainId || !nftAssets || (nftAssets && nftAssets.length === 0)
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -288,13 +301,15 @@ const Assets = () => {
         onSelectAllClick={onSelectAll}
         isAllSelected={isAllSelected}
         readyToBatch={!!selectedAssetIds.length}
-        disableButtons={!nftAssets || (nftAssets && nftAssets.length === 0)}
+        disableButtons={isDisableHeaderButtons}
         onUploadOpen={open}
         onSelectToMintClick={onSelectToMint}
         onSelectToTransferClick={onSelectToTransfer}
         selectedToMint={selectedToMint}
         selectedToTransfer={selectedToTransfer}
         onBatch={onBatch}
+        collectionName={contractName}
+        onChainId={onChainId}
       />
 
       <TextileContext.Provider
@@ -308,33 +323,37 @@ const Assets = () => {
         >
           <input {...getInputProps()} />
 
-          {nftAssets && nftAssets.length === 0 ? (
-            <Box>
-              NFT Assets not found. You can drag & drop asset files here, or
-              click the Upload button on the top right to select asset files
-            </Box>
-          ) : (
-            <Grid templateColumns='repeat(5, 1fr)'>
-              <GridItem colSpan={displayedAsset ? 11 : 14}>
-                <SimpleGrid minChildWidth='15rem' spacing={2}>
-                  <AssetPreviews
-                    selectedAssetIds={selectedAssetIds}
-                    nftAssets={nftAssets}
-                    onOpenAssetDrawer={onDisplayAsset}
-                    onAssetSelectionToggle={updateSelectedAssetIdsOnToggle}
-                    isSelectionEnabled={selectedToMint || selectedToTransfer}
-                  />
-                </SimpleGrid>
-              </GridItem>
-            </Grid>
-          )}
+          {
+            nftAssets && nftAssets.length === 0 ? (
+              <Box>
+                NFT Assets not found. You can drag & drop asset files to here, or
+                click the Upload button on the top right to select asset files
+              </Box>
+            ) : (
+              <SimpleGrid minChildWidth="15rem" spacing={3} mt={5}>
+                <AssetPreviews
+                  selectedAssetIds={selectedAssetIds}
+                  nftAssets={nftAssets}
+                  onOpenAssetDrawer={onDisplayAsset}
+                  onAssetSelectionToggle={updateSelectedAssetIdsOnToggle}
+                  isSelectionEnabled={selectedToMint || selectedToTransfer}
+                />
+              </SimpleGrid>
+            )
+          }
         </Box>
 
-        <AssetDrawer
-          onClose={onCloseAssetDrawer}
-          isOpen={isAssetDrawerOpen}
-          selectedAsset={displayedAsset}
-        />
+        {
+          isAssetDrawerOpen && displayedAsset && contractAddress ?
+            <AssetDrawer
+              onClose={onCloseAssetDrawer}
+              isOpen={isAssetDrawerOpen}
+              selectedAsset={displayedAsset}
+              contractAddress={contractAddress}
+              onChainId={onChainId}
+            />
+            : ''
+        }
       </TextileContext.Provider>
     </Container>
   )

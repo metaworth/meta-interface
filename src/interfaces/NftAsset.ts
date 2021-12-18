@@ -9,6 +9,9 @@ interface NftAsset {
   tokenId?: string
   sellOrder?: any
   minted?: boolean
+  creator?: string
+  contractAddress?: string
+  modifier?: string
 }
 
 export default NftAsset

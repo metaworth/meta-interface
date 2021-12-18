@@ -23,6 +23,7 @@ export interface ExpandableCheckboxButtonProps {
   label: string
   submitButtonLabel: string
   width: number
+  ml?: number
 }
 
 const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
@@ -36,12 +37,13 @@ const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
   label,
   submitButtonLabel,
   width,
+  ml,
 }) => {
   return (
     <Button
       p={0}
       fontSize={'sm'}
-      ml={2}
+      ml={ml}
       borderRadius={5}
       border='2px'
       borderColor='black'

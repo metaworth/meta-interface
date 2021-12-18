@@ -37,12 +37,13 @@ const AssetPreview: FC<AssetPreviewProps> = ({
       maxW={'sm'}
       borderRadius='lg'
       overflow='hidden'
-      p='5'
+      _hover={{ boxShadow: '0 10px 16px 0 rgb(0 0 0 / 20%), 0 6px 20px 0 rgb(0 0 0 / 19%)' }}
+      p={4}
       onClick={onClick}
     >
       <Box height='10'>
         {isSelectionEnabled && (
-          <Box mb='5'>
+          <Box mb='2'>
             <SlideFade offsetY='10px' in={isSelectionEnabled}>
               <CustomRoundedCheckbox
                 isFullyChecked={isSelected}
@@ -51,25 +52,42 @@ const AssetPreview: FC<AssetPreviewProps> = ({
           </Box>
         )}
       </Box>
-      <Flex alignItems={'center'} justifyContent={'center'} overflow={'hidden'}>
+      <Flex alignItems={'center'} height={200} justifyContent={'center'} overflow={'hidden'}>
         <Flex
           alignItems={'center'}
           justifyContent={'center'}
           overflow={'hidden'}
         >
-          <Image
-            src={`${
-              file.cid ? `https://ipfs.io/ipfs/${file.cid}` : `${file.preview}`
-            }`}
-            alt={file.name}
-            className='abc'
-          />
+          {
+            file?.type?.startsWith('video') ? (
+              <video
+                width="90%"
+                src={`${
+                  file.cid ? `https://ipfs.io/ipfs/${file.cid}` : `${file.preview}`
+                }`}
+                autoPlay
+                loop
+                muted
+                data-loaded="loaded"
+                style={{'borderRadius': '0.5rem', 'maxHeight': '250px'}}
+              />
+            ) : (
+              <Image
+                src={`${
+                  file.cid ? `https://ipfs.io/ipfs/${file.cid}` : `${file.preview}`
+                }`}
+                alt={file.name}
+                maxH={200}
+                lineHeight={200}
+                borderRadius="lg"
+              />
+            )
+          }
         </Flex>
       </Flex>
 
-      <Box p='3'>
+      <Box pt={2}>
         <Box
-          mt='1'
           fontWeight='semibold'
           as='h4'
           lineHeight='tight'
@@ -80,26 +98,29 @@ const AssetPreview: FC<AssetPreviewProps> = ({
         </Box>
 
         <Box
-          color='gray.500'
           fontWeight='extrabold'
           letterSpacing='wide'
           fontSize='xs'
           textTransform='uppercase'
         >
-          {file.cid ? (
-            <Link
-              d='flex'
-              alignItems='center'
-              href={`https://ipfs.io/ipfs/${file.cid}`}
-              isExternal
-              title={file.cid}
-            >
-              {`${file.cid.slice(0, 8)}...${file.cid.substr(-8)}`}
-              <ExternalLinkIcon ml={2} />
-            </Link>
-          ) : (
-            ''
-          )}
+          {
+            file.cid ? (
+              <Flex direction={'row'}>
+                IMAGE CID:&nbsp;
+                <Link
+                  d='flex'
+                  color='gray.500'
+                  alignItems='center'
+                  href={`https://ipfs.io/ipfs/${file.cid}`}
+                  isExternal
+                  title={file.cid}
+                >
+                  {`${file.cid.slice(0, 8)}...${file.cid.substr(-8)}`}
+                  <ExternalLinkIcon ml={2} />
+                </Link>
+              </Flex>
+            ) : ''
+          }
         </Box>
       </Box>
     </Box>
