@@ -7,6 +7,7 @@ interface NftAsset {
   name?: string
   desc?: string
   tokenId?: string
+  transactionHash?: string
   sellOrder?: any
   minted?: boolean
   creator?: string

@@ -1,4 +1,4 @@
-import { FC, useState, useRef, useContext, useEffect, useLayoutEffect, useCallback } from 'react'
+import { FC, useState, useRef, useContext, useEffect, useLayoutEffect } from 'react'
 import {
   Box,
   Accordion,
@@ -24,7 +24,6 @@ import {
   Link
 } from '@chakra-ui/react'
 import { useDispatch } from 'react-redux'
-import { Where } from '@textile/hub'
 import { FaPlus, FaMinus } from 'react-icons/fa'
 import cloneDeep from 'lodash/cloneDeep'
 import AssetMetadata from '../AssetMetadata'
@@ -58,9 +57,9 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
   const [title, setTitle] = useState<string>('')
   const [desc, setDesc] = useState<string>('')
   const [contract, setContract] = useState<Contract>()
-  const [minted, setMinted] = useState<boolean>(false)
   const [asset, setAsset] = useState<NftAsset>()
   const [metadataCid, setMetadataCid] = useState<string>()
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
 
@@ -82,34 +81,21 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     }
   }, [chainId])
 
-  const checkMetadata = useCallback(async () => {
-    if (!threadDBClient || !threadID || !selectedAsset || !account) return
-
-    const query = new Where('modifier').eq(account)
-    const q = query.and('contractAddress').eq(contractAddress).and('_id').eq(selectedAsset.assetMetadata.cid)
-
-    const md = await threadDBClient.find<NftAsset>(threadID, contractAddress, q)
-    if (md.length > 0) {
-      setMinted(!!md[0].minted)
-    }
-    dispatch(setLoading(false))
-  }, [threadDBClient, threadID, selectedAsset, account])
-
-  useLayoutEffect(() => {
-    dispatch(setLoading(true))
-    checkMetadata()
-  }, [])
-
   useEffect(() => {
     if (!state || state.status === 'None') return
 
     if (state.status === 'Mining' || state.status === 'Success') {
       if (asset && state.status === 'Success') {
+        // @ts-ignore
+        const tokenId = state.receipt?.events?.find(e => e.event === 'MetaMintCompleted').args._tokenId
+
         asset.name = title
         asset.desc = desc
         asset.creator = account!
         asset.minted = true
         asset.nftMetadadtaCid = metadataCid
+        asset.tokenId = tokenId ? tokenId.toString() : ''
+        asset.transactionHash = state.receipt?.transactionHash
 
         threadDBClient?.save(threadID!, contractAddress, [asset])
       }
@@ -158,6 +144,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     if (!threadDBClient || !threadID || !selectedAsset || !account) return
 
     dispatch(setLoading(true))
+    setIsLoading(true)
 
     const asset = await threadDBClient.findByID<NftAsset>(threadID, contractAddress, selectedAsset.assetMetadata.cid)
     setAsset(asset)
@@ -180,6 +167,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
 
     dispatch(setLoading(false))
     onDrawerClose()
+    setIsLoading(false)
 	}
 
   useEffect(() => {
@@ -200,12 +188,28 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     if (!account || !threadDBClient || !threadID || !selectedAsset) return
 
     dispatch(setLoading(true))
+    setIsLoading(true)
 
     const asset = await threadDBClient?.findByID<NftAsset>(threadID, contractAddress, selectedAsset.assetMetadata.cid)
     if (asset) {
       asset.name = title
       asset.desc = desc
       asset.modifier = account
+
+      const metadata = cloneDeep(asset)
+      // @ts-ignore
+      delete metadata._id
+      // @ts-ignore
+      delete metadata._mod
+      delete metadata.assetMetadata.preview
+
+      // call web3 storage to save data
+      const blob = new Blob([JSON.stringify({...metadata, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], { type : 'application/json' })
+    
+      const files = [new File([blob], `${title}.json`)]
+      const cid = await web3Storage?.put(files)
+
+      asset.nftMetadadtaCid = cid
 
       await threadDBClient.save(threadID, contractAddress, [asset])
       toast({
@@ -221,7 +225,11 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     
     dispatch(setLoading(false))
     onClose()
+    setIsLoading(false)
   }
+
+  const isReadOnly = selectedAsset?.minted
+  const isButtonsHidden = isReadOnly && selectedAsset?.nftMetadadtaCid
 
   return (
     <>
@@ -286,7 +294,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
                             <FormLabel>Title</FormLabel>
                             <Input
                               placeholder="e.g. Awesome avatar"
-                              isReadOnly={!!minted}
+                              isReadOnly={isReadOnly}
                               value={title}
                               onChange={(e: any) => setTitle(e.target.value)}
                             />
@@ -295,7 +303,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
                             <FormLabel>Description</FormLabel>
                             <Textarea
                               placeholder="e.g. More details info about the awesome avatar"
-                              isReadOnly={!!minted}
+                              isReadOnly={isReadOnly}
                               resize={'vertical'}
                               value={desc}
                               onChange={(e: any) => setDesc(e.target.value)}
@@ -318,15 +326,19 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
               </Button>
 
               {
-                minted || onChainId !== chainId ? '' : (
+                isButtonsHidden ? '' : (
                   <>
-                    <Button colorScheme="blue" size="md" disabled={!title || !selectedAsset} onClick={() => onSave()}>
+                    <Button colorScheme="blue" size="md" isLoading={isLoading} disabled={!title || !selectedAsset} onClick={() => onSave()}>
                       Save
                     </Button>
                     
-                    <Button colorScheme="teal" size="md" disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
-                      Mint
-                    </Button>
+                    {
+                      onChainId !== chainId ? '' : (
+                        <Button colorScheme="teal" size="md" isLoading={isLoading} disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
+                          Mint
+                        </Button>
+                      )
+                    }
                   </>
                 )
               }

@@ -111,17 +111,17 @@ const AssetsHeader: FC<AssetsHeaderProps> = ({
             {...commonButtonProps}
             onExpandToggle={onSelectToMintClick}
             isExpanded={selectedToMint}
-            label={'Select to Mint'}
+            label={'Select to Batch Mint'}
             submitButtonLabel={'Batch Mint'}
-            width={128}
+            width={158}
           />
           {/* <ExpandableButton
             {...commonButtonProps}
             onExpandToggle={onSelectToTransferClick}
             isExpanded={selectedToTransfer}
-            label={'Select to Transfer'}
+            label={'Select to Batch Transfer'}
             submitButtonLabel={'Batch Transfer'}
-            width={155}
+            width={188}
             ml={2}
           /> */}
         </Box>

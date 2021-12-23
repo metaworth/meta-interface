@@ -21,6 +21,8 @@ import {
   NumberInputStepper,
   NumberIncrementStepper,
   NumberDecrementStepper,
+  InputGroup,
+  InputRightAddon,
 } from '@chakra-ui/react'
 import { Contract } from '@ethersproject/contracts'
 import {
@@ -29,7 +31,8 @@ import {
   useContractCall,
   getExplorerTransactionLink,
   ChainId,
-  shortenIfTransactionHash
+  shortenIfTransactionHash,
+  getCurrencySymbol
 } from '@dapptools/evm'
 import { useDispatch } from 'react-redux'
 import { ethers } from 'ethers'
@@ -61,6 +64,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [numberOfReserved, setNumberOfReserved] = useState(0)
   const [maxTokensPerWallet, setMaxTokensPerWallet] = useState(1)
   const [contractAddress, setContractAddress] = useState<string>('')
+  const [mintPrice, setMintPrice] = useState<string>('');
   const [contractAbi, setContractAbi] = useState<Interface>()
   const [contract, setContract] = useState<Contract>()
 
@@ -69,7 +73,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
   useLayoutEffect(() => {
     if (chainId) {
-      const collectionContract = getContract('collection', chainId)
+      const collectionContract = getContract('factory', chainId)
       if (!collectionContract) return
 
       setContractAddress(collectionContract.address)
@@ -158,6 +162,8 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           </Box>
         )
       })
+      dispatch(setLoading(false))
+      setIsCreating(false)
     }
   }, [state])
 
@@ -171,7 +177,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     try {
       const salt = ethers.utils.formatBytes32String(`${collectionName}-${symbol}`)
       setSalt(salt)
-      const price = ethers.utils.parseEther('0.03')
+      const price = mintPrice ? ethers.utils.parseEther(mintPrice) : 0
       await send(
         salt,
         price,
@@ -217,9 +223,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Collection Name</FormLabel>
               <Input
                 placeholder='Name the collection'
-                onChange={(event) =>
-                  setCollectionName(event.currentTarget.value)
-                }
+                onChange={(event) => setCollectionName(event.currentTarget.value)}
                 fontSize='sm'
                 marginBottom='5'
               />
@@ -228,9 +232,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Symbol</FormLabel>
               <Input
                 placeholder='Symbol'
-                onChange={(event) =>
-                  setSymbol(event.currentTarget.value)
-                }
+                onChange={(event) => setSymbol(event.currentTarget.value)}
                 fontSize='sm'
                 marginBottom='5'
               />
@@ -239,9 +241,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Total Supply</FormLabel>
               <NumberInput
                 min={0}
-                onChange={(value) =>
-                  setTotalSupply(Number(value))
-                }
+                onChange={(value) => setTotalSupply(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
               >
@@ -256,9 +256,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Number of Reserved</FormLabel>
               <NumberInput
                 min={1}
-                onChange={(value) =>
-                  setNumberOfReserved(Number(value))
-                }
+                onChange={(value) => setNumberOfReserved(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
               >
@@ -273,9 +271,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Max Tokens per Wallet</FormLabel>
               <NumberInput
                 min={1}
-                onChange={(value) =>
-                  setMaxTokensPerWallet(Number(value))
-                }
+                onChange={(value) => setMaxTokensPerWallet(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
               >
@@ -287,13 +283,25 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               </NumberInput>
             </FormControl>
             <FormControl>
+              <FormLabel fontSize='sm'>Mint Price</FormLabel>
+              <InputGroup>
+                <NumberInput
+                  min={0}
+                  onChange={(value) => setMintPrice(value)}
+                  fontSize='sm'
+                  marginBottom='5'
+                >
+                  <NumberInputField fontSize='sm' placeholder='Mint price, e.g. 0.03' borderRightRadius={0} />
+                </NumberInput>
+                <InputRightAddon children={getCurrencySymbol(chainId!)} />
+              </InputGroup>
+            </FormControl>
+            <FormControl>
               <FormLabel fontSize='sm'>Description</FormLabel>
               <Textarea
                 fontSize='sm'
                 value={description}
-                onChange={(event) =>
-                  setDescription(event.currentTarget.value)
-                }
+                onChange={(event) => setDescription(event.currentTarget.value)}
               />
             </FormControl>
           </ModalBody>

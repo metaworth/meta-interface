@@ -6,6 +6,9 @@ import {
   useColorModeValue,
   useDisclosure,
   Grid,
+  SimpleGrid,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react'
 import { useEffect, useState, useCallback } from 'react'
 import { HiPlus } from 'react-icons/hi'
@@ -42,6 +45,7 @@ const Collections = () => {
 
   const [threadDBListener, setThreadDBListener] = useState<any>()
   const [collections, setCollections] = useState<CollectionInterface[]>([])
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const onCreateCollection = () => {
     onOpen()
@@ -74,15 +78,16 @@ const Collections = () => {
     if (!threadDBListener) {
       setupListener()
     }
+    return () => threadDBListener && threadDBListener.close()
   }, [threadDBClient, threadID, threadDBListener, setupListener])
 
   useEffect(() => {
-    dispatch(setLoading(true))
+    setIsLoading(true)
     if (!threadDBClient || !threadID || !ownerAddress) return
     (async () => {
       const existedCollections = await loadCollections(ownerAddress)
       setCollections(existedCollections)
-      dispatch(setLoading(false))
+      setIsLoading(false)
     })()
   }, [dispatch, ownerAddress, threadDBClient, threadID])
 
@@ -107,14 +112,36 @@ const Collections = () => {
         </Button>
       </Box>
 
-      <Box minH={'calc(100vh - 60px)'} mt={3}>
+      <Box minH={'calc(100vh - 60px)'} mt={3} pb={'calc(60px + 1rem)'}>
       {
-        collections.length > 0 ? (
-          <Grid templateColumns='repeat(4, 1fr)' gap={5}>
+        isLoading ? (
+          <SimpleGrid columns={{sm: 2, md: 4}} spacing={3} mt={5}>
+            {
+              Array.of(1, 2, 3, 4, 5, 6, 7, 8).map((v) => {
+                return (
+                  <Box
+                    key={v}
+                    borderWidth='1px'
+                    maxW={'sm'}
+                    borderRadius='lg'
+                    p={5}
+                  >
+                    <Skeleton
+                      lineHeight={15}
+                      borderRadius="lg"
+                    >&nbsp;</Skeleton>
+                    <SkeletonText mt='5' noOfLines={5} spacing='5' />
+                  </Box>
+                )
+              })
+            }
+          </SimpleGrid>
+        ) : collections.length > 0 ? (
+          <SimpleGrid columns={{sm: 2, md: 4}} spacing={3}>
             {collections.map((collection) => (
               <Collection collection={collection} key={collection.id} />
             ))}
-          </Grid>
+          </SimpleGrid>
         ) : (
           'No collections found'
         )

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useLayoutEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { useDispatch } from 'react-redux'
 import {
@@ -7,11 +7,23 @@ import {
   SimpleGrid,
   useDisclosure,
   useColorModeValue,
+  useToast,
+  Link,
+  Skeleton,
+  SkeletonText,
 } from '@chakra-ui/react'
 import { Update } from '@textile/hub'
 import { Web3Storage } from 'web3.storage'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { useEvm } from '@dapptools/evm'
+import {
+  useEvm,
+  useContractFunction,
+  getExplorerTransactionLink,
+  shortenIfTransactionHash,
+  ChainId
+} from '@dapptools/evm'
+import { Contract } from 'ethers'
+import sortBy from 'lodash/sortBy'
 import { setLoading } from '../store'
 import FileMetadata from '../interfaces/FileMetadata'
 import NftAsset from '../interfaces/NftAsset'
@@ -19,12 +31,13 @@ import { AssetDrawer, AssetsHeader } from '../components/Assets'
 import { TextileContext } from '../context'
 import useTextile from '../hooks/useTextile'
 import AssetPreviews from '../components/Assets/AssetPreviews'
+import getContract from '../helpers/contracts'
 
 
 const Assets = () => {
   const color = useColorModeValue('black', 'black')
 
-  const { account, chainId } = useEvm()
+  const { account, chainId, library } = useEvm()
 
   const { state: locationState } = useLocation()
   const navigate = useNavigate()
@@ -41,6 +54,12 @@ const Assets = () => {
   const [contractAddress, setContractAddress] = useState<string>('')
   const [contractName, setContractName] = useState<string>('')
   const [onChainId, setOnChainId] = useState<number>()
+  const [contract, setContract] = useState<Contract>()
+  const [isLoading, setIsLoading] = useState<boolean>(false)
+
+  const { state, send } = useContractFunction(contract!, 'batchMint')
+  
+  const toast = useToast()
 
   const {
     isOpen: isAssetDrawerOpen,
@@ -52,12 +71,20 @@ const Assets = () => {
 
   const { threadDBClient, threadID } = useTextile()
 
+  useLayoutEffect(() => {
+    if (contractAddress && chainId && library && account) {
+      const implContract = getContract('metaImplementation', chainId)
+      const contract = new Contract(contractAddress, implContract.abi, library)
+      setContract(contract)
+    }
+  }, [chainId, library, account, contractAddress])
+
   useEffect(() => {
     if (!locationState) {
       navigate('/collections')
       return
     }
-console.log('locationState.chainId:', locationState)
+
     setContractAddress(locationState.contractAddress)
     setContractName(locationState.contractName)
     setOnChainId(locationState.chainId)
@@ -65,7 +92,7 @@ console.log('locationState.chainId:', locationState)
 
   const loadNFTAssets = useCallback(async () => {
     if (!threadDBClient || !threadID) return
-
+    
     const collections = await threadDBClient.listCollections(threadID)
     let coll = collections.find((c) => c.name === contractAddress) 
     if (!coll) {
@@ -77,20 +104,18 @@ console.log('locationState.chainId:', locationState)
       contractAddress,
       {}
     )
-    console.log('nft assets:', nftAssets)
     // const ids = await nftAssets.map((instance: any) => instance['_id'])
     // await threadDBClient.delete(threadID, contractAddress, ids)
 
     setNftAssets(nftAssets || [])
-    dispatch(setLoading(false))
+    setIsLoading(false)
   }, [contractAddress, dispatch, threadDBClient, threadID])
 
   const setupListener = useCallback(() => {
     if (!threadDBClient || !threadID) return
     const callback = (update?: Update<any>) => {
       if (!update || !update.instance) return
-      console.log('New update:', update.instance.name, update)
-      // loadNFTAssets()
+      loadNFTAssets()
     }
     const listener = threadDBClient?.listen(
       threadID,
@@ -101,7 +126,7 @@ console.log('locationState.chainId:', locationState)
   }, [threadDBClient, threadID])
 
   useEffect(() => {
-    dispatch(setLoading(true))
+    setIsLoading(true)
     if (!threadDBClient || !threadID) return
     loadNFTAssets()
   }, [threadDBClient, threadID, loadNFTAssets, dispatch])
@@ -112,6 +137,7 @@ console.log('locationState.chainId:', locationState)
     if (!threadDBListener) {
       setupListener()
     }
+    return () => threadDBListener && threadDBListener.close()
   }, [threadDBClient, threadID, threadDBListener, setupListener])
 
   useEffect(() => {
@@ -128,7 +154,7 @@ console.log('locationState.chainId:', locationState)
     async (assetsMeta: FileMetadata[]) => {
       // show the root cid as soon as it's ready
       const onRootCidReady = (cid: string) => {
-        console.log('uploading files with cid:', cid)
+        // console.log('uploading files with cid:', cid)
       }
 
       const sFiles: FileMetadata[] = []
@@ -144,7 +170,7 @@ console.log('locationState.chainId:', locationState)
       const onStoredChunk = (size: number) => {
         uploaded += size
         const pct = (uploaded / totalSize) * 100
-        console.log(`Uploading... ${pct.toFixed(2)}% complete`)
+        // console.log(`Uploading... ${pct.toFixed(2)}% complete`)
       }
 
       const rootCid = await web3Storage?.put(sFiles, {
@@ -265,24 +291,100 @@ console.log('locationState.chainId:', locationState)
     if (selectedToTransfer) onBatchTransfer()
   }
 
-  const onBatchMint = () => {
-    alert(
-      `Calling Mint API endpoint with the following asset IDs: ${selectedAssetIds}`
-    )
+  const updateAsset = async (tokenIds: string[]) => {
+    const sortedAssets = sortBy(nftAssets, ['name', 'assetMetadata.cid'])
+      .filter((asset) => selectedAssetIds.includes(asset.assetMetadata.cid))
+
+    try {
+      sortedAssets.forEach(async (asset, idx) => {
+        asset.creator = account!
+        asset.minted = true
+        asset.tokenId = tokenIds[idx] ? tokenIds[idx].toString() : ''
+        await threadDBClient?.save(threadID!, contractAddress, [asset])
+      })
+    } catch(error: any) {
+      console.error('Error to update asset, message:', error.message || error)
+    }
+    onSelectToMint()
+    dispatch(setLoading(false))
   }
 
-  const onBatchTransfer = () => {
-    alert(
-      `Calling Transfer API endpoint with the following asset IDs: ${selectedAssetIds}`
-    )
+  useEffect(() => {
+    if (!state || state.status === 'None') return
+
+    if (state.status === 'Mining' || state.status === 'Success') {
+      if (state.status === 'Success') {
+        // @ts-ignore
+        const tokenIds = state.receipt?.events?.find(e => e.event === 'BatchMintCompleted').args._tokenIds
+        updateAsset(tokenIds)
+      }
+      
+      toast({
+        title: `${state.status}`,
+        status: 'success',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg={'teal'} borderRadius={5}>
+            {
+              state.transaction?.hash ? (
+                <>
+                  <Box>{state.status}</Box>
+                  <span>Tx hash: </span>
+                  <Link
+                    isExternal={true}
+                    href={`${getExplorerTransactionLink(state.transaction.hash, chainId || ChainId.Mainnet)}`}>
+                      { shortenIfTransactionHash(state.transaction.hash) }
+                  </Link>
+                </>
+              ) : ''
+            }
+          </Box>
+        )
+      })
+    } else if (state.status === 'Exception' || state.status === 'Fail') {
+      dispatch(setLoading(false))
+      toast({
+        title: `${state.status}`,
+        status: 'error',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+        render: () => (
+          <Box color="white" p={3} bg="red" borderRadius={5}>
+            { state.errorMessage }
+          </Box>
+        )
+      })
+    }
+  }, [state, toast])
+
+  const onBatchMint = async () => {
+    dispatch(setLoading(true))
+    const tokenURIs = sortBy(nftAssets, ['name', 'assetMetadata.cid'])
+      .filter((asset) => selectedAssetIds.includes(asset.assetMetadata.cid))
+      .map((asset) => `https://ipfs.io/ipfs/${asset.nftMetadadtaCid}/${asset.name}.json`)
+      
+    await send(tokenURIs)
   }
+
+  const onBatchTransfer = () => {}
 
   const onSelectToMint = () => {
     if (isDisableHeaderButtons) return
-
-    setSelectedToMint(!selectedToMint)
+    const flag = !selectedToMint
+    setSelectedToMint(flag)
     setSelectedToTransfer(false)
     setSelectedAssetIds([])
+
+    if (flag) {
+      setNftAssets(mintableAssets)
+    } else {
+      setNftAssets([])
+      setIsLoading(true)
+      loadNFTAssets()
+    }
   }
 
   const onSelectToTransfer = () => {
@@ -293,7 +395,9 @@ console.log('locationState.chainId:', locationState)
     setSelectedAssetIds([])
   }
 
-  const isDisableHeaderButtons = chainId !== onChainId || !nftAssets || (nftAssets && nftAssets.length === 0)
+  const mintableAssets = nftAssets.filter((asset) => !asset.tokenId && !asset.nftMetadadtaCid && !asset.minted)
+
+  const isDisableHeaderButtons = chainId !== onChainId || !nftAssets || (nftAssets && nftAssets.length === 0) || mintableAssets.length === 0
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
@@ -317,20 +421,43 @@ console.log('locationState.chainId:', locationState)
       >
         <Box
           mt={3}
+          pb={'calc(60px + 1rem)'}
           {...getRootProps()}
-          w={'100%'}
           minH={'calc(100vh - 60px - 1rem)'}
         >
           <input {...getInputProps()} />
 
           {
-            nftAssets && nftAssets.length === 0 ? (
+            isLoading ? (
+              <SimpleGrid columns={{sm: 2, md: 4}} spacing={3} mt={5}>
+                {
+                  Array.of(1, 2, 3, 4, 5, 6, 7, 8).map((v) => {
+                    return (
+                      <Box
+                        key={v}
+                        borderWidth='1px'
+                        maxW={'sm'}
+                        borderRadius='lg'
+                        p={5}
+                      >
+                        <Skeleton
+                          lineHeight={15}
+                          borderRadius="lg"
+                        >&nbsp;</Skeleton>
+                        <SkeletonText mt='5' noOfLines={5} spacing='5' />
+                      </Box>
+                    )
+                  })
+                }
+              </SimpleGrid>
+            )
+            : nftAssets && nftAssets.length === 0 ? (
               <Box>
                 NFT Assets not found. You can drag & drop asset files to here, or
                 click the Upload button on the top right to select asset files
               </Box>
             ) : (
-              <SimpleGrid minChildWidth="15rem" spacing={3} mt={5}>
+              <SimpleGrid columns={{sm: 2, md: 4}} spacing={3} mt={5}>
                 <AssetPreviews
                   selectedAssetIds={selectedAssetIds}
                   nftAssets={nftAssets}

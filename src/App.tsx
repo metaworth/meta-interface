@@ -14,7 +14,13 @@ import {
   MenuItem,
 } from '@chakra-ui/react'
 import { connect } from 'react-redux'
-import { useEvm, useNetwork, ChainId, getChainName } from '@dapptools/evm'
+import {
+  useEvm,
+  useNetwork,
+  ChainId,
+  EmeraldTestnet,
+  Mumbai,
+} from '@dapptools/evm'
 import LoadingOverlay from './components/Overlay'
 import ClockLoader from 'react-spinners/ClockLoader'
 import { Header } from './components/Header/index'
@@ -60,10 +66,10 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
                     <MenuButton as={Button} colorScheme={'teal'}>Switch Network</MenuButton>
                     <MenuList>
                       <MenuItem onClick={() => switchNetwork(ChainId.EmeraldTestnet)}>
-                        { getChainName(ChainId.EmeraldTestnet) }
+                        { EmeraldTestnet.chainName }
                       </MenuItem>
                       <MenuItem onClick={() => switchNetwork(ChainId.Mumbai)}>
-                        { getChainName(ChainId.Mumbai) }
+                        { Mumbai.chainName }
                       </MenuItem>
                     </MenuList>
                   </Menu>
