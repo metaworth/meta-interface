@@ -25,7 +25,7 @@ import {
 import { CloseIcon, HamburgerIcon, ChevronDownIcon } from '@chakra-ui/icons'
 import { IoMoon, IoSunny } from 'react-icons/io5'
 import { BiWallet } from 'react-icons/bi'
-import { useEvm, shortenIfAddress, ChainId, useNetwork } from '@dapplabs/evm'
+import { useEvm, shortenIfAddress, ChainId, useNetwork } from '@dapptools/evm'
 import Logo from '../../assets/images/logo.svg'
 import OasisEth from '../../assets/images/oasiseth.png'
 import EthLogo from '../../assets/images/eth-logo.svg'
@@ -62,7 +62,7 @@ export const Header = () => {
   const { colorMode, toggleColorMode } = useColorMode()
 
   const { activateBrowserWallet, account, deactivate, chainId } = useEvm()
-  const { addNetwork, switchNetwork } = useNetwork()
+  const { addNetwork } = useNetwork()
 
   const color = useColorModeValue('', 'gray.800')
 
@@ -210,7 +210,7 @@ export const Header = () => {
                 onMouseEnter={menuListMouseEnterEvent}
                 onMouseLeave={menuListMouseLeaveEvent}
               >
-                <MenuItem minH="40px" onClick={() => addNetwork(EMERALD_TESTNET_PARAMS)}>
+                <MenuItem minH="40px" onClick={() => addNetwork(EMERALD_TESTNET_PARAMS, ChainId.EmeraldTestnet)}>
                   <Image
                     width={4}
                     borderRadius="full"
@@ -220,7 +220,7 @@ export const Header = () => {
                   />
                   <span>Emerald Paratime</span>
                 </MenuItem>
-                <MenuItem minH="40px" onClick={() => addNetwork(MUMBAI_TESTNET_PARAMS)}>
+                <MenuItem minH="40px" onClick={() => addNetwork(MUMBAI_TESTNET_PARAMS, ChainId.Mumbai)}>
                   <Image
                     width={4}
                     borderRadius="full"

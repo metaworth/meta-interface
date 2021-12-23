@@ -1,4 +1,4 @@
-import { FC, useState, useRef, useContext, useEffect } from 'react'
+import { FC, useState, useRef, useContext, useEffect, useLayoutEffect } from 'react'
 import {
   Box,
   Accordion,
@@ -25,35 +25,41 @@ import {
 } from '@chakra-ui/react'
 import { useDispatch } from 'react-redux'
 import { FaPlus, FaMinus } from 'react-icons/fa'
+import cloneDeep from 'lodash/cloneDeep'
 import AssetMetadata from '../AssetMetadata'
 import { TextileContext } from '../../context'
 import { setLoading } from '../../store'
-import { ThreadID } from '@textile/hub'
 import NftAsset from '../../interfaces/NftAsset'
-import { useEvm, useContractFunction, getExplorerTransactionLink, ChainId } from '@dapplabs/evm'
+import {
+  useEvm,
+  useContractFunction,
+  getExplorerTransactionLink,
+  ChainId,
+  shortenIfTransactionHash
+} from '@dapptools/evm'
 import { Contract } from '@ethersproject/contracts'
+import getContract from '../../helpers/contracts'
 
 
 interface AssetDrawerProps {
   isOpen: boolean
+  contractAddress: string
   selectedAsset: NftAsset | undefined
   onClose: () => void
+  onChainId?: number
 }
 
-const MetaContractAddr = '0xaE97e70B20a8dc81d3183598B3E8905b8D24F871'
-const MetaContractAbi = [
-  'function mint(string memory _tokenURI) external payable returns (uint256)'
-]
-const contract = new Contract(MetaContractAddr, MetaContractAbi)
-
-const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) => {
+const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, contractAddress, onChainId }) => {
   const color = useColorModeValue('black', 'black')
 
-  const { chainId } = useEvm()
+  const { chainId, account } = useEvm()
 
-  const [title, setTitle] = useState<string | undefined>()
-  const [desc, setDesc] = useState<string | undefined>()
-  const [tokenId] = useState('')
+  const [title, setTitle] = useState<string>('')
+  const [desc, setDesc] = useState<string>('')
+  const [contract, setContract] = useState<Contract>()
+  const [asset, setAsset] = useState<NftAsset>()
+  const [metadataCid, setMetadataCid] = useState<string>()
+  const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const cancelRef = useRef() as React.MutableRefObject<HTMLInputElement>
 
@@ -63,13 +69,37 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
 
   const dispatch = useDispatch()
 
-  // @ts-ignore
-  const { state, send } = useContractFunction(contract, 'mint', { transactionName: 'mintNFT' })
+  const { state, send } = useContractFunction(contract!, 'mint', { transactionName: 'mintNFT' })
+
+  useLayoutEffect(() => {
+    if (chainId) {
+      const collectionContract = getContract('metaImplementation', chainId)
+      if (!collectionContract) return
+
+      const contract = new Contract(contractAddress, collectionContract.abi)
+      setContract(contract)
+    }
+  }, [chainId])
 
   useEffect(() => {
     if (!state || state.status === 'None') return
 
     if (state.status === 'Mining' || state.status === 'Success') {
+      if (asset && state.status === 'Success') {
+        // @ts-ignore
+        const tokenId = state.receipt?.events?.find(e => e.event === 'MetaMintCompleted').args._tokenId
+
+        asset.name = title
+        asset.desc = desc
+        asset.creator = account!
+        asset.minted = true
+        asset.nftMetadadtaCid = metadataCid
+        asset.tokenId = tokenId ? tokenId.toString() : ''
+        asset.transactionHash = state.receipt?.transactionHash
+
+        threadDBClient?.save(threadID!, contractAddress, [asset])
+      }
+      
       toast({
         title: `${state.status}`,
         status: 'success',
@@ -83,7 +113,11 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                 <>
                   <Box>{state.status}</Box>
                   <span>Tx hash: </span>
-                  <Link isExternal={true} href={`${getExplorerTransactionLink(state.transaction?.hash, chainId || ChainId.Mainnet)}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                  <Link
+                    isExternal={true}
+                    href={`${getExplorerTransactionLink(state.transaction.hash, chainId || ChainId.Mainnet)}`}>
+                      { shortenIfTransactionHash(state.transaction.hash) }
+                  </Link>
                 </>
               ) : ''
             }
@@ -99,91 +133,103 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
         isClosable: true,
         render: () => (
           <Box color="white" p={3} bg="red" borderRadius={5}>
-            {
-              state.transaction?.hash ? (
-                <>
-                  <span>Tx hash:</span>
-                  <Link isExternal={true} href={`https://mumbai.polygonscan.com/tx/${state.transaction?.hash}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
-                </>
-              ) : ''
-            }
+            { state.errorMessage }
           </Box>
         )
       })
     }
   }, [state, toast])
 
-  /**
-	 * Mint Nft
-	 */
 	const lazyMint = async () => {
-    if (!threadDBClient || !threadID || !selectedAsset) return
+    if (!threadDBClient || !threadID || !selectedAsset || !account) return
 
     dispatch(setLoading(true))
+    setIsLoading(true)
 
-    const asset = await threadDBClient?.findByID<NftAsset>(ThreadID.fromString(threadID), 'metaworth', selectedAsset.assetMetadata.cid!)
-    if (asset) {
-      asset.name = title
-      asset.desc = desc
-    }
+    const asset = await threadDBClient.findByID<NftAsset>(threadID, contractAddress, selectedAsset.assetMetadata.cid)
+    setAsset(asset)
+
+    const metadata = cloneDeep(asset)
+    // @ts-ignore
+    delete metadata._id
+    // @ts-ignore
+    delete metadata._mod
+    delete metadata.assetMetadata.preview
 
     // call web3 storage to save data
-    const blob = new Blob([JSON.stringify({...asset, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], {type : 'application/json'})
+    const blob = new Blob([JSON.stringify({...metadata, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], { type : 'application/json' })
   
     const files = [new File([blob], `${title}.json`)]
     const cid = await web3Storage?.put(files)
+    setMetadataCid(cid)
 
     await send(`https://${cid}.ipfs.dweb.link/${title}.json`)
 
-    console.log('state status:', state.status)
-    if (state.status === 'Success') {
-      asset.minted = true
-      asset.nftMetadadtaCid = cid
-    }
-    await threadDBClient.save(ThreadID.fromString(threadID), 'metaworth', [asset])
-
     dispatch(setLoading(false))
     onDrawerClose()
+    setIsLoading(false)
 	}
 
   useEffect(() => {
     if (selectedAsset) {
-      setTitle(selectedAsset.name)
-      setDesc(selectedAsset.desc)
+      setTitle(selectedAsset.name || '')
+      setDesc(selectedAsset.desc || '')
     }
   }, [selectedAsset])
 
   const onDrawerClose = () => {
-    setTitle(undefined)
-    setDesc(undefined)
+    setTitle('')
+    setDesc('')
 
     onClose()
   }
 
   const onSave = async () => {
-    if (!threadDBClient || !threadID || !selectedAsset) return
+    if (!account || !threadDBClient || !threadID || !selectedAsset) return
 
     dispatch(setLoading(true))
-    const asset = await threadDBClient?.findByID<NftAsset>(ThreadID.fromString(threadID), 'metaworth', selectedAsset.assetMetadata.cid!)
+    setIsLoading(true)
 
+    const asset = await threadDBClient?.findByID<NftAsset>(threadID, contractAddress, selectedAsset.assetMetadata.cid)
     if (asset) {
       asset.name = title
       asset.desc = desc
+      asset.modifier = account
 
-      await threadDBClient.save(ThreadID.fromString(threadID), 'metaworth', [asset])
+      const metadata = cloneDeep(asset)
+      // @ts-ignore
+      delete metadata._id
+      // @ts-ignore
+      delete metadata._mod
+      delete metadata.assetMetadata.preview
+
+      // call web3 storage to save data
+      const blob = new Blob([JSON.stringify({...metadata, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], { type : 'application/json' })
+    
+      const files = [new File([blob], `${title}.json`)]
+      const cid = await web3Storage?.put(files)
+
+      asset.nftMetadadtaCid = cid
+
+      await threadDBClient.save(threadID, contractAddress, [asset])
+      toast({
+        description: `Metadata updated`,
+        status: 'success',
+        variant: 'left-accent',
+        position: 'top-right',
+        isClosable: true,
+      })
+    } else {
+      console.error('NFT asset is not found for the cid', selectedAsset.assetMetadata.cid)
     }
-
+    
     dispatch(setLoading(false))
-
-    toast({
-      description: `Metadata updated`,
-      status: 'success',
-      variant: 'left-accent',
-      position: 'top-right',
-      isClosable: true,
-    })
     onClose()
+    setIsLoading(false)
   }
+
+  const isReadOnly = selectedAsset?.minted
+  const isButtonsHidden = isReadOnly && selectedAsset?.nftMetadadtaCid
 
   return (
     <>
@@ -248,7 +294,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                             <FormLabel>Title</FormLabel>
                             <Input
                               placeholder="e.g. Awesome avatar"
-                              isReadOnly={!!tokenId}
+                              isReadOnly={isReadOnly}
                               value={title}
                               onChange={(e: any) => setTitle(e.target.value)}
                             />
@@ -257,7 +303,7 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
                             <FormLabel>Description</FormLabel>
                             <Textarea
                               placeholder="e.g. More details info about the awesome avatar"
-                              isReadOnly={!!tokenId}
+                              isReadOnly={isReadOnly}
                               resize={'vertical'}
                               value={desc}
                               onChange={(e: any) => setDesc(e.target.value)}
@@ -280,25 +326,21 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset }) =
               </Button>
 
               {
-                !tokenId ? (
+                isButtonsHidden ? '' : (
                   <>
-                    <Button colorScheme="blue" size="md" disabled={!title || !selectedAsset} onClick={() => onSave()}>
+                    <Button colorScheme="blue" size="md" isLoading={isLoading} disabled={!title || !selectedAsset} onClick={() => onSave()}>
                       Save
                     </Button>
                     
-                    <Button colorScheme="teal" size="md" disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
-                      Mint
-                    </Button>
+                    {
+                      onChainId !== chainId ? '' : (
+                        <Button colorScheme="teal" size="md" isLoading={isLoading} disabled={!title || !selectedAsset} onClick={() => lazyMint()}>
+                          Mint
+                        </Button>
+                      )
+                    }
                   </>
-                ) : ''
-              }
-
-              {
-                tokenId ? (
-                  <Button colorScheme="teal" size="md" onClick={() => console.log('create sell order')}>
-                    Create Sell Order
-                  </Button>
-                ) : ''
+                )
               }
             </Stack>
           </DrawerFooter>

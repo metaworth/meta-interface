@@ -15,7 +15,14 @@ import {
   Input,
   Textarea,
   useToast,
-  Link
+  Link,
+  NumberInput,
+  NumberInputField,
+  NumberInputStepper,
+  NumberIncrementStepper,
+  NumberDecrementStepper,
+  InputGroup,
+  InputRightAddon,
 } from '@chakra-ui/react'
 import { Contract } from '@ethersproject/contracts'
 import {
@@ -23,15 +30,17 @@ import {
   useContractFunction,
   useContractCall,
   getExplorerTransactionLink,
-  ChainId
-} from '@dapplabs/evm'
+  ChainId,
+  shortenIfTransactionHash,
+  getCurrencySymbol
+} from '@dapptools/evm'
 import { useDispatch } from 'react-redux'
 import { ethers } from 'ethers'
 import { Interface } from '@ethersproject/abi'
 
 import { setLoading } from '../../store'
-import * as textileClient from '../../data/textileClient'
-import * as collectionData from '../../data/collections'
+import { getThreadDbClientWithThreadID } from '../../data/textileClient'
+import { Collection, addDataToThread } from '../../data/collections'
 import getContract from '../../helpers/contracts'
 
 interface CreateCollectionModalProps {
@@ -53,8 +62,9 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   const [symbol, setSymbol] = useState('')
   const [totalSupply, setTotalSupply] = useState(0)
   const [numberOfReserved, setNumberOfReserved] = useState(0)
-  const [maxTokensPerWallet, setMaxTokensPerWallet] = useState(0)
+  const [maxTokensPerWallet, setMaxTokensPerWallet] = useState(1)
   const [contractAddress, setContractAddress] = useState<string>('')
+  const [mintPrice, setMintPrice] = useState<string>('');
   const [contractAbi, setContractAbi] = useState<Interface>()
   const [contract, setContract] = useState<Contract>()
 
@@ -63,7 +73,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
 
   useLayoutEffect(() => {
     if (chainId) {
-      const collectionContract = getContract('collection', chainId)
+      const collectionContract = getContract('factory', chainId)
       if (!collectionContract) return
 
       setContractAddress(collectionContract.address)
@@ -74,8 +84,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     }
   }, [chainId])
 
-  // @ts-ignore
-  const { state, send } = useContractFunction(contract, 'createNFT')
+  const { state, send } = useContractFunction(contract!, 'createNFT')
   const [predictedMetaAddr] = useContractCall(
     ownerAddress &&
       contractAddress && 
@@ -95,22 +104,23 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
   }, [predictedMetaAddr])
 
   const checkTxStatus = useCallback(async () => {
-    if (!state || state.status === 'None') return
+    if (!chainId || !state || state.status === 'None') return
 
     if (state.status === 'Success') {
       if (!ownerAddress) return
-      const collection: collectionData.Collection = {
+      const collection: Collection = {
         contractAddress: predictedMetaAddress,
         ownerAddress,
-        collectionName,
+        contractName: collectionName,
+        chainId,
         symbol: symbol.toUpperCase(),
-        totalSupply,
+        totalSupply: !!totalSupply ? totalSupply : 0,
         description,
-        numberOfReserved,
-        maxTokensPerWallet
+        numberOfReserved: !!numberOfReserved ? numberOfReserved : 0,
+        maxTokensPerWallet: !!maxTokensPerWallet ? maxTokensPerWallet : 1,
       }
-      const dbClient = await textileClient.defaultThreadDbClientWithThreadID
-      await collectionData.createCollection(dbClient, collection)
+      const dbClient = await getThreadDbClientWithThreadID()
+      await addDataToThread(dbClient, collection)
       toast({
         title: `${state.status}`,
         status: 'success',
@@ -124,7 +134,11 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
                 <>
                   <Box>{state.status}</Box>
                   <span>Tx hash: </span>
-                  <Link isExternal={true} href={`${getExplorerTransactionLink(state.transaction?.hash, chainId || ChainId.Mainnet)}`}>{`${state.transaction?.hash.substr(0, 8)}...${state.transaction?.hash.substr(-8)}`}</Link>
+                  <Link
+                    isExternal={true}
+                    href={`${getExplorerTransactionLink(state.transaction.hash, chainId || ChainId.Mainnet)}`}>
+                      { shortenIfTransactionHash(state.transaction.hash) }
+                  </Link>
                 </>
               ) : ''
             }
@@ -133,6 +147,8 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
       })
 
       onModalClose()
+      dispatch(setLoading(false))
+      setIsCreating(false)
     } else if (state.status === 'Exception' || state.status === 'Fail') {
       toast({
         title: `${state.status}`,
@@ -146,6 +162,8 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
           </Box>
         )
       })
+      dispatch(setLoading(false))
+      setIsCreating(false)
     }
   }, [state])
 
@@ -159,22 +177,19 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
     try {
       const salt = ethers.utils.formatBytes32String(`${collectionName}-${symbol}`)
       setSalt(salt)
-      const price = ethers.utils.parseEther('0.03')
+      const price = mintPrice ? ethers.utils.parseEther(mintPrice) : 0
       await send(
         salt,
         price,
         totalSupply ? totalSupply : 0,
         numberOfReserved ? numberOfReserved : 0,
-        maxTokensPerWallet ? maxTokensPerWallet : 0,
+        maxTokensPerWallet ? maxTokensPerWallet : 1,
         '',
         collectionName,
         symbol
       )
     } catch (err: any) {
       console.error('Error to send create collection tx, error message:', err.message || err)
-    } finally {
-      dispatch(setLoading(false))
-      setIsCreating(false)
     }
   }
 
@@ -208,9 +223,7 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Collection Name</FormLabel>
               <Input
                 placeholder='Name the collection'
-                onChange={(event) =>
-                  setCollectionName(event.currentTarget.value)
-                }
+                onChange={(event) => setCollectionName(event.currentTarget.value)}
                 fontSize='sm'
                 marginBottom='5'
               />
@@ -219,59 +232,76 @@ const CreateCollectionModal: React.FC<CreateCollectionModalProps> = ({
               <FormLabel fontSize='sm'>Symbol</FormLabel>
               <Input
                 placeholder='Symbol'
-                onChange={(event) =>
-                  setSymbol(event.currentTarget.value)
-                }
+                onChange={(event) => setSymbol(event.currentTarget.value)}
                 fontSize='sm'
                 marginBottom='5'
               />
             </FormControl>
             <FormControl isRequired>
               <FormLabel fontSize='sm'>Total Supply</FormLabel>
-              <Input
-                placeholder='Total Supply'
-                pattern="[0-9]*"
-                type='number'
-                onChange={(event) =>
-                  setTotalSupply(Number(event.currentTarget.value))
-                }
+              <NumberInput
+                min={0}
+                onChange={(value) => setTotalSupply(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
-              />
+              >
+                <NumberInputField fontSize='sm' placeholder='Total Supply' />
+                <NumberInputStepper>
+                  <NumberIncrementStepper />
+                  <NumberDecrementStepper />
+                </NumberInputStepper>
+              </NumberInput>
             </FormControl>
             <FormControl>
               <FormLabel fontSize='sm'>Number of Reserved</FormLabel>
-              <Input
-                placeholder='The number of reserved NFTs'
-                pattern="[0-9]*"
-                type='number'
-                onChange={(event) =>
-                  setNumberOfReserved(Number(event.currentTarget.value))
-                }
+              <NumberInput
+                min={1}
+                onChange={(value) => setNumberOfReserved(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
-              />
+              >
+                <NumberInputField fontSize='sm' placeholder='The number of reserved NFTs' />
+                <NumberInputStepper>
+                  <NumberIncrementStepper />
+                  <NumberDecrementStepper />
+                </NumberInputStepper>
+              </NumberInput>
             </FormControl>
             <FormControl>
               <FormLabel fontSize='sm'>Max Tokens per Wallet</FormLabel>
-              <Input
-                placeholder='The max NFTs per wallet'
-                pattern="[0-9]*"
-                type='number'
-                onChange={(event) =>
-                  setMaxTokensPerWallet(Number(event.currentTarget.value))
-                }
+              <NumberInput
+                min={1}
+                onChange={(value) => setMaxTokensPerWallet(Number(value))}
                 fontSize='sm'
                 marginBottom='5'
-              />
+              >
+                <NumberInputField fontSize='sm' placeholder='The max NFTs per wallet' />
+                <NumberInputStepper>
+                  <NumberIncrementStepper />
+                  <NumberDecrementStepper />
+                </NumberInputStepper>
+              </NumberInput>
+            </FormControl>
+            <FormControl>
+              <FormLabel fontSize='sm'>Mint Price</FormLabel>
+              <InputGroup>
+                <NumberInput
+                  min={0}
+                  onChange={(value) => setMintPrice(value)}
+                  fontSize='sm'
+                  marginBottom='5'
+                >
+                  <NumberInputField fontSize='sm' placeholder='Mint price, e.g. 0.03' borderRightRadius={0} />
+                </NumberInput>
+                <InputRightAddon children={getCurrencySymbol(chainId!)} />
+              </InputGroup>
             </FormControl>
             <FormControl>
               <FormLabel fontSize='sm'>Description</FormLabel>
               <Textarea
                 fontSize='sm'
-                onChange={(event) =>
-                  setDescription(event.currentTarget.value)
-                }
+                value={description}
+                onChange={(event) => setDescription(event.currentTarget.value)}
               />
             </FormControl>
           </ModalBody>

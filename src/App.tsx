@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import {
   ChakraProvider,
   useColorModeValue,
@@ -14,7 +14,13 @@ import {
   MenuItem,
 } from '@chakra-ui/react'
 import { connect } from 'react-redux'
-import { useEvm, useNetwork, ChainId, getChainName } from '@dapplabs/evm'
+import {
+  useEvm,
+  useNetwork,
+  ChainId,
+  EmeraldTestnet,
+  Mumbai,
+} from '@dapptools/evm'
 import LoadingOverlay from './components/Overlay'
 import ClockLoader from 'react-spinners/ClockLoader'
 import { Header } from './components/Header/index'
@@ -60,10 +66,10 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
                     <MenuButton as={Button} colorScheme={'teal'}>Switch Network</MenuButton>
                     <MenuList>
                       <MenuItem onClick={() => switchNetwork(ChainId.EmeraldTestnet)}>
-                        { getChainName(ChainId.EmeraldTestnet) }
+                        { EmeraldTestnet.chainName }
                       </MenuItem>
                       <MenuItem onClick={() => switchNetwork(ChainId.Mumbai)}>
-                        { getChainName(ChainId.Mumbai) }
+                        { Mumbai.chainName }
                       </MenuItem>
                     </MenuList>
                   </Menu>
@@ -76,22 +82,18 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
                 <Header />
         
                 <Box pt={'calc(60px + 1rem)'}>
-                  <Switch>
-                    <Route exact path="/collections">
-                      <Collections />
-                    </Route>
-                    <Route exact path="/collections/assets">
-                      <Assets />
-                    </Route>
-                    <Route path="/token/mint">
-                      <Mint />
-                    </Route>
-                    <Route path="/token/campaign">
-                      <Campaign />
-                    </Route>
+                  <Routes>
+                    <Route path="/collections" element={<Collections />} />
+                      
+                    <Route path="/collections/assets" element={<Assets />} />
+                      
+                    <Route path="/token/mint" element={<Mint />} />
+                      
+                    <Route path="/token/campaign" element={<Campaign />} />
         
-                    <Redirect from="/" to="/collections" />
-                  </Switch>
+                    <Route path="/" element={<Navigate replace to="/collections" />} />
+                    <Route path="*" element={<Navigate replace to="/" />} />
+                  </Routes>
                 </Box>
               </>
             )

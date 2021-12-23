@@ -1,4 +1,5 @@
 import { FC } from 'react'
+import { SimpleGrid } from '@chakra-ui/react'
 import NftAsset from '../../interfaces/NftAsset'
 import AssetPreview from './AssetPreview'
 
@@ -28,7 +29,11 @@ const AssetPreviews: FC<AssetPreviewsProps> = ({
     />
   ))
 
-  return <>{previews}</>
+  return (
+    <>
+      {previews}
+    </>
+  )
 }
 
 export default AssetPreviews

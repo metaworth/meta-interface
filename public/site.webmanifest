@@ -1,6 +1,7 @@
 {
   "name": "MetaWorth",
   "short_name": "MetaWorth",
+  "start_url": ".",
   "icons": [
     {
       "src": "favicon.ico",

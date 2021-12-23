@@ -23,6 +23,7 @@ export interface ExpandableCheckboxButtonProps {
   label: string
   submitButtonLabel: string
   width: number
+  ml?: number
 }
 
 const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
@@ -36,18 +37,19 @@ const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
   label,
   submitButtonLabel,
   width,
+  ml,
 }) => {
   return (
-    <Button
+    <Box
       p={0}
       fontSize={'sm'}
-      ml={2}
+      ml={ml}
       borderRadius={5}
       border='2px'
       borderColor='black'
-      bgColor={'white'}
+      bgColor={isDisabled ? 'gray.100' : 'white'}
       size={'md'}
-      disabled={isDisabled}
+      cursor={isDisabled ? 'not-allowed' : 'pointer'}
       d='inline-block'
       style={{
         transition: 'width .3s ease',
@@ -57,42 +59,40 @@ const ExpandableButton: FC<ExpandableCheckboxButtonProps> = ({
       _focus={{ boxShadow: isExpanded ? 'none' : 'initial' }}
       _active={{ bg: isExpanded ? 'transparent' : 'initial' }}
     >
-      <Box>
-        <Flex alignItems='center'>
-          <Box
-            mr={isExpanded ? 2 : 0}
-            pl={4}
-            pr={4}
-            pt={2}
-            pb={2}
-            onClick={onExpandToggle}
-          >
-            <Text>{label}</Text>
-          </Box>
-          {isExpanded && (
-            <Flex ml={'auto'}>
-              <SlideFade
-                transition={{
-                  enter: {
-                    duration: 0.1,
-                    delay: 0.3,
-                  },
-                }}
-                in={isExpanded}
-              >
-                <ExtendedCheckboxButtonElements
-                  onCheckboxClick={onCheckboxClick}
-                  isFullyChecked={isFullyChecked}
-                  readyToSubmit={readyToSubmit}
-                  onSubmit={onSubmit}
-                  submitButtonLabel={submitButtonLabel}
-                />
-              </SlideFade>
-            </Flex>
-          )}
-        </Flex>
-      </Box>
-    </Button>
+      <Flex alignItems='center'>
+        <Box
+          as={Flex}
+          mr={isExpanded ? 2 : 0}
+          px={isExpanded ? 4 : 0}
+          py={2}
+          mx={isExpanded ? '' : 'auto'}
+          onClick={onExpandToggle}
+        >
+          <Text>{label}</Text>
+        </Box>
+        {isExpanded && (
+          <Flex ml={'auto'}>
+            <SlideFade
+              transition={{
+                enter: {
+                  duration: 0.1,
+                  delay: 0.3,
+                },
+              }}
+              in={isExpanded}
+            >
+              <ExtendedCheckboxButtonElements
+                onCheckboxClick={onCheckboxClick}
+                isFullyChecked={isFullyChecked}
+                readyToSubmit={readyToSubmit}
+                onSubmit={onSubmit}
+                submitButtonLabel={submitButtonLabel}
+              />
+            </SlideFade>
+          </Flex>
+        )}
+      </Flex>
+    </Box>
   )
 }
 

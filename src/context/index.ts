@@ -1,10 +1,10 @@
 import { createContext } from 'react'
-import { Client } from '@textile/hub'
+import { Client, ThreadID } from '@textile/hub'
 import { Web3Storage } from 'web3.storage'
 
 interface TextileInterface {
   threadDBClient?: Client
-  threadID?: string
+  threadID?: ThreadID
   web3Storage?: Web3Storage
 }
 

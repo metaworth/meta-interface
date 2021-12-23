@@ -7,8 +7,12 @@ interface NftAsset {
   name?: string
   desc?: string
   tokenId?: string
+  transactionHash?: string
   sellOrder?: any
   minted?: boolean
+  creator?: string
+  contractAddress?: string
+  modifier?: string
 }
 
 export default NftAsset

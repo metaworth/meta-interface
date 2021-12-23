@@ -1,4 +1,4 @@
-import { ChainId, getChainName } from '@dapplabs/evm'
+import { ChainId, getChainName } from '@dapptools/evm'
 
 const supportedChains = {
    [ChainId.Mumbai]: getChainName(ChainId.Mumbai),

@@ -6,7 +6,7 @@ interface FileMetadata extends File {
   lastModified: number
   lastModifiedDate?: Date
   preview?: string
-  cid?: string
+  cid: string
 }
 
 export default FileMetadata
