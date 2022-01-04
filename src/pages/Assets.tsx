@@ -85,8 +85,11 @@ const Assets = () => {
       return
     }
 
+    // @ts-ignore
     setContractAddress(locationState.contractAddress)
+    // @ts-ignore
     setContractName(locationState.contractName)
+    // @ts-ignore
     setOnChainId(locationState.chainId)
   }, [])
 
@@ -156,7 +159,6 @@ const Assets = () => {
       const onRootCidReady = (cid: string) => {
         // console.log('uploading files with cid:', cid)
       }
-
       const sFiles: FileMetadata[] = []
       // when each chunk is stored, update the percentage complete and display
       const totalSize = assetsMeta
@@ -165,54 +167,52 @@ const Assets = () => {
           return f.size
         })
         .reduce((a, b) => a + b, 0)
-
       let uploaded = 0
       const onStoredChunk = (size: number) => {
         uploaded += size
         const pct = (uploaded / totalSize) * 100
         // console.log(`Uploading... ${pct.toFixed(2)}% complete`)
       }
-
-      const rootCid = await web3Storage?.put(sFiles, {
-        onRootCidReady,
-        onStoredChunk,
-      })
-      const res = rootCid && (await web3Storage?.get(rootCid))
-      if (!res?.ok) {
-        throw new Error(
-          `failed to get ${rootCid} - [${res?.status}] ${res?.statusText}`
-        )
-      }
-
-      const assetsWithCid: NftAsset[] = []
-      // unpack File objects from the response
-      const files = await res.files()
-      for (const file of files) {
-        const f = assetsMeta.filter((item) => item.name === file.name)
-        const md = {
-          // @ts-ignore
-          cid: file.cid,
-          // @ts-ignore
-          name: file.name,
-          // @ts-ignore
-          size: file.size,
-          // @ts-ignore
-          lastModified: f[0].lastModified,
-          lastModifiedDate: f[0].lastModifiedDate,
-          path: f[0].path,
-          // @ts-ignore
-          type: f[0].type,
-          ...f[0],
+      try {
+        const rootCid = await web3Storage?.put(sFiles, {
+          onRootCidReady,
+          onStoredChunk,
+        })
+        if (!rootCid) {
+          console.error('no root id in web3 storage upload file response')
+          return
         }
-        const asset = { contractAddress, modifier: account!, assetMetadata: md, _id: file.cid }
+        const res = await web3Storage?.get(rootCid)
+        if (!res || !res?.ok) {
+          throw new Error(
+            `failed to get ${rootCid} - [${res?.status}] ${res?.statusText}`
+          )
+        }
         
-        await threadDBClient?.create(threadID!, contractAddress, [asset])
-        
-        assetsWithCid.push(asset)
+        const assetsWithCid: NftAsset[] = []
+        // unpack File objects from the response
+        const files = await res.files()
+        for (const file of files) {
+          const f = assetsMeta.filter((item) => item.name === file.name)
+          const { cid, name, size, ...rest } = f[0]
+          const md = {
+            cid: cid ? cid : file.cid,
+            name: name ? name : file.name,
+            size: size ? size : file.size,
+            ...rest
+          }
+          
+          const asset = { contractAddress, modifier: account!, assetMetadata: md, _id: file.cid }
+          await threadDBClient?.create(threadID!, contractAddress, [asset])
+          assetsWithCid.push(asset)
+        }
+  
+        setNftAssets((prevArray) => [...assetsWithCid, ...prevArray])
+      } catch(err) {
+        console.error(err)
+      } finally {
+        dispatch(setLoading(false))
       }
-
-      setNftAssets((prevArray) => [...assetsWithCid, ...prevArray])
-      dispatch(setLoading(false))
     },
     [contractAddress, dispatch, threadDBClient, threadID, web3Storage]
   )
@@ -236,12 +236,10 @@ const Assets = () => {
       const fAssets = assets?.filter((a) => a && a.name !== f.name)
       return fAssets && fAssets.length > 0
     })
-
     if (filteredFiles.length === 0) {
       dispatch(setLoading(false))
       return
     }
-
     filteredFiles.map((file: FileMetadata) => {
       return Object.assign(file, {
         preview: URL.createObjectURL(file),

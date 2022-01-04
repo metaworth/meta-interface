@@ -24,7 +24,6 @@ import {
   InputGroup,
   InputRightAddon,
 } from '@chakra-ui/react'
-import { Contract } from '@ethersproject/contracts'
 import {
   useEvm,
   useContractFunction,
@@ -35,7 +34,7 @@ import {
   getCurrencySymbol
 } from '@dapptools/evm'
 import { useDispatch } from 'react-redux'
-import { ethers } from 'ethers'
+import { Contract, ethers } from 'ethers'
 import { Interface } from '@ethersproject/abi'
 
 import { setLoading } from '../../store'

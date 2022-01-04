@@ -5,7 +5,6 @@ import {
   Button,
   useColorModeValue,
   useDisclosure,
-  Grid,
   SimpleGrid,
   Skeleton,
   SkeletonText,
@@ -22,7 +21,6 @@ import useTextile from '../hooks/useTextile'
 import CollectionInterface from '../interfaces/Collection'
 import { getThreadDbClientWithThreadID } from '../data/textileClient'
 import { getCollectionByOwerAddress } from '../data/collections'
-import { setLoading } from '../store'
 
 
 const loadCollections = async (ownerAddress: string): Promise<CollectionInterface[]> => {  

@@ -1,7 +1,7 @@
 import { Box, Container, useColorModeValue } from '@chakra-ui/react'
 
 const Campaign = () => {
-  const color = useColorModeValue("black", "black")
+  const color = useColorModeValue('black', 'black')
 
   return (
     <Container color={color} maxW={{ lg: '7xl' }}>
