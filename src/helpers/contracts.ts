@@ -15,8 +15,12 @@ type Contracts = {
 const contracts: Contracts = {
   'factory': {
     address: {
-      [ChainId.EmeraldTestnet]: '0x87d5159313b3a9f8Aa7eCCd5Df5C29a41AC4Db3d',
-      [ChainId.Mumbai]: '0xc426A786898B9d9f786a0c2b6AeB2289AAd15548',
+      // Mainnets
+      [ChainId.Emerald]: '0x579249D214f09BDFE36f53Ff8a43E0A786f3Ad29',
+      // Testnets
+      [ChainId.EmeraldTestnet]: '0x89B399CddAD46d1BFd29d160eCd542Dd3D2868f5',
+      [ChainId.Mumbai]: '0x9097E978b7F4Be9F01f5502038Eb066736EcC4C7',
+      [ChainId.Stardust]: '0x89B399CddAD46d1BFd29d160eCd542Dd3D2868f5',
     },
     abi: new Interface([
       'function predictMetaAddress(bytes32 salt) external view returns (address)',
@@ -31,6 +35,19 @@ const contracts: Contracts = {
       'function walletOfOwner(address _owner) external view returns(uint256[] memory)',
       'event MetaMintCompleted(address indexed _owner, uint256 indexed _tokenId)',
       'event BatchMintCompleted(address indexed _owner, uint256[] _tokenIds)'
+    ])
+  },
+  'card': {
+    address: {
+      // Mainnets
+      [ChainId.Emerald]: '0xE91Db1A1C57B9672CF91E86bf43171b45905B823',
+      // Testnets
+      [ChainId.Stardust]: '0xf569dFA98374d4e593f81173A9B307151be2E597',
+      [ChainId.Mumbai]: '0xEF4F751BB428F501f3392a777869165bC776EeA1',
+      [ChainId.EmeraldTestnet]: '0xf569dFA98374d4e593f81173A9B307151be2E597',
+    },
+    abi: new Interface([
+      'function batchMintWithSameURI(address[] calldata _addrs, string calldata _tokenURI) external returns (uint256[] memory)'
     ])
   }
 }

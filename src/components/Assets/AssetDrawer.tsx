@@ -37,7 +37,7 @@ import {
   ChainId,
   shortenIfTransactionHash
 } from '@dapptools/evm'
-import { Contract } from '@ethersproject/contracts'
+import { Contract } from 'ethers'
 import getContract from '../../helpers/contracts'
 
 
@@ -156,8 +156,13 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     delete metadata._mod
     delete metadata.assetMetadata.preview
 
-    // call web3 storage to save data
-    const blob = new Blob([JSON.stringify({...metadata, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], { type : 'application/json' })
+    const blob = new Blob([JSON.stringify({
+      name: title,
+      description: desc,
+      creator: account,
+      image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`,
+      ...metadata,
+    })], { type : 'application/json' })
   
     const files = [new File([blob], `${title}.json`)]
     const cid = await web3Storage?.put(files)
@@ -194,7 +199,6 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
     if (asset) {
       asset.name = title
       asset.desc = desc
-      asset.modifier = account
 
       const metadata = cloneDeep(asset)
       // @ts-ignore
@@ -203,9 +207,14 @@ const AssetDrawer: FC<AssetDrawerProps> = ({ onClose, isOpen, selectedAsset, con
       delete metadata._mod
       delete metadata.assetMetadata.preview
 
-      // call web3 storage to save data
-      const blob = new Blob([JSON.stringify({...metadata, image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`})], { type : 'application/json' })
-    
+      const blob = new Blob([JSON.stringify({
+        name: title,
+        description: desc,
+        creator: account,
+        image: `https://${asset.assetMetadata.cid}.ipfs.dweb.link/`,
+        ...metadata,
+      })], { type : 'application/json' })
+
       const files = [new File([blob], `${title}.json`)]
       const cid = await web3Storage?.put(files)
 

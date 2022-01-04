@@ -17,9 +17,6 @@ import { connect } from 'react-redux'
 import {
   useEvm,
   useNetwork,
-  ChainId,
-  EmeraldTestnet,
-  Mumbai,
 } from '@dapptools/evm'
 import LoadingOverlay from './components/Overlay'
 import ClockLoader from 'react-spinners/ClockLoader'
@@ -30,6 +27,7 @@ import Assets from './pages/Assets'
 import Mint from './pages/Mint'
 import theme from './helpers/theme'
 import supportedChains from './helpers/supportedChains'
+import GenerativeCard from './pages/GenerativeCard'
 
 function App({ isLoadingActive }: { isLoadingActive: boolean }) {
   const { activateBrowserWallet, account, chainId } = useEvm()
@@ -65,12 +63,15 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
                   <Menu isLazy>
                     <MenuButton as={Button} colorScheme={'teal'}>Switch Network</MenuButton>
                     <MenuList>
-                      <MenuItem onClick={() => switchNetwork(ChainId.EmeraldTestnet)}>
-                        { EmeraldTestnet.chainName }
-                      </MenuItem>
-                      <MenuItem onClick={() => switchNetwork(ChainId.Mumbai)}>
-                        { Mumbai.chainName }
-                      </MenuItem>
+                      {
+                        Object.entries(supportedChains).map(([key, val]) => {
+                          return (
+                            <MenuItem key={key} onClick={() => switchNetwork(Number(key))}>
+                              { val }
+                            </MenuItem>
+                          )
+                        })
+                      }
                     </MenuList>
                   </Menu>
 
@@ -86,6 +87,8 @@ function App({ isLoadingActive }: { isLoadingActive: boolean }) {
                     <Route path="/collections" element={<Collections />} />
                       
                     <Route path="/collections/assets" element={<Assets />} />
+
+                    <Route path="/generative/card" element={<GenerativeCard />} />
                       
                     <Route path="/token/mint" element={<Mint />} />
                       

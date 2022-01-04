@@ -25,36 +25,30 @@ import {
 import { CloseIcon, HamburgerIcon, ChevronDownIcon } from '@chakra-ui/icons'
 import { IoMoon, IoSunny } from 'react-icons/io5'
 import { BiWallet } from 'react-icons/bi'
-import { useEvm, shortenIfAddress, ChainId, useNetwork } from '@dapptools/evm'
+import { useEvm, shortenIfAddress, ChainId, useNetwork, getChainName } from '@dapptools/evm'
 import Logo from '../../assets/images/logo.svg'
-import OasisEth from '../../assets/images/oasiseth.png'
 import EthLogo from '../../assets/images/eth-logo.svg'
-import Polygon from '../../assets/images/polygon-logo.svg'
+import OasisLogo from '../../assets/images/oasiseth.png'
+import MetisLogo from '../../assets/images/metis-logo.png'
+import PolygonLogo from '../../assets/images/polygon-logo.svg'
 import { MobileNav } from './MobileNav'
 import { DesktopNav } from './DesktopNav'
+import supportedChains from '../../helpers/supportedChains'
 
-const MUMBAI_TESTNET_PARAMS = {
-  chainId: '80001',
-  name: 'Polygon Testnet',
-  nativeCurrency: {
-    name: 'Polygon',
-    symbol: 'MATIC',
-    decimals: 18
-  },
-  rpc: ['https://rpc-mumbai.matic.today'],
-  explorers: ['https://mumbai.polygonscan.com/']
-}
-
-const EMERALD_TESTNET_PARAMS = {
-  chainId: '42261',
-  name: 'Emerald Testnet',
-  nativeCurrency: {
-    name: 'Emerald Paratime',
-    symbol: 'ROSE',
-    decimals: 18
-  },
-  rpc: ['https://testnet.emerald.oasis.dev/', 'https://testnet.emerald.oasis.dev/ws'],
-  explorers: ['https://testnet.oasisscan.com/paratimes/00000000000000000000000000000000000000000000000072c8215e60d5bca7']
+const getCryptoLogo = (networkId: Number) => {
+  switch(networkId) {
+    case 42261:
+    case 42262:
+      return OasisLogo
+    case 588:
+    case 1088:
+      return MetisLogo
+    case 80001:
+    case 137:
+      return PolygonLogo
+    default:
+      return EthLogo
+  }
 }
 
 export const Header = () => {
@@ -90,35 +84,25 @@ export const Header = () => {
   }
 
   const SelectedChain = () => {
-    if (chainId === ChainId.Mumbai) {
-      return (
-        <>
-          <Image
-            width={4}
-            borderRadius="full"
-            src={Polygon}
-            alt="Mumbai Testnet"
-            mr="0.5rem"
-          />
-          <span>Mumbai Testnet</span>
-        </>
-      )
-    } else if (chainId === ChainId.EmeraldTestnet) {
-      return (
-        <>
-          <Image
-            width={4}
-            borderRadius="full"
-            src={OasisEth}
-            alt="Emerald Paratime"
-            mr="0.5rem"
-          />
-          <span>Emerald Paratime</span>
-        </>
-      )
-    }
-
-    return <></>
+    const currNetwork = Object.entries(supportedChains)
+      .filter(([key]) => {
+        return Number(key) === chainId
+      }).map(([key, val]) => {
+        return (
+          <>
+            <Image
+              width={4}
+              borderRadius="full"
+              src={getCryptoLogo(Number(key))}
+              alt={val}
+              mr="0.5rem"
+            />
+            <span>{val}</span>
+          </>
+        )
+      })
+    
+    return currNetwork[0]
   }
 
   return (
@@ -210,36 +194,23 @@ export const Header = () => {
                 onMouseEnter={menuListMouseEnterEvent}
                 onMouseLeave={menuListMouseLeaveEvent}
               >
-                <MenuItem minH="40px" onClick={() => addNetwork(EMERALD_TESTNET_PARAMS, ChainId.EmeraldTestnet)}>
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={OasisEth}
-                    alt="Emerald Paratime"
-                    mr="0.5rem"
-                  />
-                  <span>Emerald Paratime</span>
-                </MenuItem>
-                <MenuItem minH="40px" onClick={() => addNetwork(MUMBAI_TESTNET_PARAMS, ChainId.Mumbai)}>
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={Polygon}
-                    alt="Mumbai Testnet"
-                    mr="0.5rem"
-                  />
-                  <span>Mumbai Testnet</span>
-                </MenuItem>
-                {/* <MenuItem minH="40px" onClick={() => switchNetwork('4')}>
-                  <Image
-                    width={4}
-                    borderRadius="full"
-                    src={EthLogo}
-                    alt="Rinkeby Testnet"
-                    mr="0.5rem"
-                  />
-                  <span>Rinkeby Testnet</span>
-                </MenuItem> */}
+                {
+                  Object.entries(supportedChains)
+                    .map(([key, val]) => {
+                      return (
+                        <MenuItem key={key} minH="40px" onClick={() => addNetwork(Number(key))}>
+                          <Image
+                            width={4}
+                            borderRadius="full"
+                            src={getCryptoLogo(Number(key))}
+                            alt={val}
+                            mr="0.5rem"
+                          />
+                          <span>{val}</span>
+                        </MenuItem>
+                      )
+                    })
+                }
               </MenuList>
             </Menu>
 

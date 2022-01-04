@@ -63,7 +63,31 @@ const MobileNavItem = ({ href, children, label, onMobileNavToggle }: NavItem) =>
     <Stack spacing={4} onClick={handleToggle}>
       
       {
-        href !== '/token' ? (
+        href === '/token' || href === '/generative' ? (
+          <Flex
+            py={2}
+            justify={'space-between'}
+            align={'center'}
+            _hover={{
+              textDecoration: 'none',
+            }}>
+            <Text
+              fontWeight={600}
+              // eslint-disable-next-line react-hooks/rules-of-hooks
+              color={useColorModeValue('gray.600', 'gray.200')}>
+              {label}
+            </Text>
+            {children && (
+              <Icon
+                as={ChevronDownIcon}
+                transition={'all .25s ease-in-out'}
+                transform={isOpen ? 'rotate(180deg)' : ''}
+                w={6}
+                h={6}
+              />
+            )}
+          </Flex>
+        ) : (
           <Flex
             py={2}
             as={NavLink}
@@ -90,30 +114,6 @@ const MobileNavItem = ({ href, children, label, onMobileNavToggle }: NavItem) =>
                 />
               )}
             </Flex>
-        ) : (
-          <Flex
-            py={2}
-            justify={'space-between'}
-            align={'center'}
-            _hover={{
-              textDecoration: 'none',
-            }}>
-            <Text
-              fontWeight={600}
-              // eslint-disable-next-line react-hooks/rules-of-hooks
-              color={useColorModeValue('gray.600', 'gray.200')}>
-              {label}
-            </Text>
-            {children && (
-              <Icon
-                as={ChevronDownIcon}
-                transition={'all .25s ease-in-out'}
-                transform={isOpen ? 'rotate(180deg)' : ''}
-                w={6}
-                h={6}
-              />
-            )}
-          </Flex>
         )
       }
 

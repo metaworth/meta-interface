@@ -18,7 +18,9 @@ const config: Config = {
     [ChainId.Rinkeby]: process.env.REACT_APP_RINKEBY_RPC_ENDPOINT || '',
     [ChainId.Polygon]: process.env.REACT_APP_POLYGON_RPC_ENDPOINT || '',
     [ChainId.Mumbai]: process.env.REACT_APP_MUMBAI_RPC_ENDPOINT || '',
+    [ChainId.Emerald]: process.env.REACT_APP_EMERALD_RPC_ENDPOINT || '',
     [ChainId.EmeraldTestnet]: process.env.REACT_APP_EMERALD_TESTNET_RPC_ENDPOINT || '',
+    [ChainId.Stardust]: process.env.REACT_APP_METIS_TESTNET_RPC_ENDPOINT || '',
   },
 }
 

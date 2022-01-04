@@ -42,10 +42,9 @@ export const DesktopNav = (props: BoxProps) => {
               <>
                 <PopoverTrigger>
                   {
-                    navItem.href && navItem.href !== '/token' ? (
+                    navItem.href && (navItem.href === '/token' || navItem.href === '/generative') ? (
                       <LinkOverlay
-                        as={NavLink}
-                        to={navItem.href ?? '/'}
+                        cursor={'pointer'}
                         fontSize={'sm'}
                         fontWeight={800}
                         style={`/${splitLocation[1]}` === navItem.href ? {
@@ -63,7 +62,8 @@ export const DesktopNav = (props: BoxProps) => {
                       </LinkOverlay>
                     ) : (
                       <LinkOverlay
-                        cursor={'pointer'}
+                        as={NavLink}
+                        to={navItem.href ?? '/'}
                         fontSize={'sm'}
                         fontWeight={800}
                         style={`/${splitLocation[1]}` === navItem.href ? {
